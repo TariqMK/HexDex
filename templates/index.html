@@ -51,7 +51,7 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .grid-area::-webkit-scrollbar{width:5px}
 .grid-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .poke-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
-.poke-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 8px 28px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;animation:fadeUp .25s ease both}
+.poke-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 8px 28px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;animation:fadeUp .25s ease both;overflow:hidden}
 .poke-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 6px 24px rgba(232,48,74,.18)}
 .poke-card.active{border-color:var(--accent);background:var(--surface2);box-shadow:0 0 0 2px var(--accent),0 6px 24px rgba(232,48,74,.25)}
 .card-dex{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text-mute)}
@@ -59,10 +59,29 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .poke-card:hover .card-sprite{transform:scale(1.1)}
 .card-name{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.9rem;text-align:center;line-height:1.1;text-transform:capitalize}
 .card-level{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text-dim)}
-.shiny-star{position:absolute;top:5px;right:7px;font-size:.7rem;filter:drop-shadow(0 0 3px gold)}
 .gen-badge{position:absolute;top:5px;left:7px;font-family:'Share Tech Mono',monospace;font-size:.52rem;color:var(--text-mute);background:var(--surface3);padding:1px 4px;border-radius:2px}
 .variant-pip{position:absolute;bottom:7px;right:7px;background:var(--accent);color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.58rem;letter-spacing:.5px;padding:1px 5px;border-radius:3px}
 .has-note-dot{position:absolute;bottom:7px;left:7px;width:6px;height:6px;background:var(--yellow);border-radius:50%}
+/* Shiny — diagonal holographic sweep across card */
+.shiny-sweep{position:absolute;inset:0;pointer-events:none;border-radius:12px;overflow:hidden}
+.shiny-sweep::after{
+  content:'';
+  position:absolute;
+  top:0;left:-120%;
+  width:60%;height:100%;
+  background:linear-gradient(105deg,
+    transparent 20%,
+    rgba(255,215,100,0.04) 40%,
+    rgba(255,200,50,0.10) 50%,
+    rgba(255,215,100,0.04) 60%,
+    transparent 80%);
+  animation:holo-sweep 4s ease-in-out infinite;
+}
+@keyframes holo-sweep{
+  0%   {left:-120%}
+  40%  {left:140%}
+  100% {left:140%}
+}
 /* DETAIL PANEL */
 /* Account for header (~53px) + filter bar (~42px) = ~95px */
 .detail-panel{position:fixed;top:95px;right:0;bottom:0;width:var(--panel-w);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.22,1,.36,1);z-index:150}
@@ -223,9 +242,6 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .fav-star{position:absolute;top:5px;right:6px;font-size:.82rem;cursor:pointer;opacity:.18;transition:opacity .15s,transform .15s;z-index:3;line-height:1;user-select:none}
 .fav-star:hover{opacity:.75;transform:scale(1.25)}
 .fav-star.fav-active{opacity:1;filter:drop-shadow(0 0 5px gold)}
-/* When shiny star also present, nudge it left */
-.poke-card .shiny-star{right:6px;top:5px}
-.poke-card:has(.fav-star.fav-active) .shiny-star{right:22px}
 /* Panel fav button — top-right of hero */
 .panel-fav-btn{position:absolute;top:10px;right:10px;background:var(--surface3);border:1px solid var(--border);border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;transition:all .15s;opacity:.4;z-index:5}
 .panel-fav-btn:hover{opacity:.85;border-color:var(--yellow)}
@@ -611,7 +627,7 @@ function renderGrid() {
     return `<div class="poke-card${activeCardIndex===gi?' active':''}" id="card-${gi}"
       onclick="selectCard(${gi})" style="animation-delay:${Math.min(gi*.02,.4)}s">
       <div class="gen-badge">GEN ${p.generation}</div>
-      ${p.shiny?'<div class="shiny-star">✨</div>':''}
+      ${p.shiny?'<div class="shiny-sweep"></div>':''}
       ${group.members.length>1?`<div class="variant-pip">${group.members.length}</div>`:''}
       ${hasNote?'<div class="has-note-dot" title="Has notes/tags"></div>':''}
       <div class="fav-star${group.members.some(m=>m.favourite)?' fav-active':''}" title="Toggle favourite" onclick="event.stopPropagation();toggleFavFromCard(${gi})">⭐</div>
@@ -647,7 +663,9 @@ function switchVariant(gi,vi){
   if(cardEl){
     cardEl.querySelector('.card-sprite').src=getSpriteUrl(p,false);
     cardEl.querySelector('.card-level').textContent=`Lv.${p.level||'?'}`;
-    const star=cardEl.querySelector('.shiny-star');if(star)star.style.display=p.shiny?'':'none';
+    const strip=cardEl.querySelector('.shiny-sweep');
+    if(p.shiny&&!strip){const d=document.createElement('div');d.className='shiny-sweep';cardEl.insertBefore(d,cardEl.firstChild);}
+    else if(!p.shiny&&strip)strip.remove();
   }
   if(activeCardIndex===gi)renderPanel(groupedCards[gi]);
 }
