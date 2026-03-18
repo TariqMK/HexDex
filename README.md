@@ -14,5 +14,6 @@ No copyrighted assets are distributed with this project._
 - Gen 3 (Ruby, Sapphire & Emerald)
 - Gen 4 (Diamond, Pearl & Platinum)
 - Gen 5 (Black, White, Black 2 & White 2)
-
+- Gen 6 (X, Y, Omega Ruby & Alpha Sapphire)
+- Gen 7 (in progress)
 ---
