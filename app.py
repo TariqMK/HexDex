@@ -121,6 +121,7 @@ def fetch_pokemon_data(species_id, cache):
             "flavour_text": flavour,
             "genus": genus,
             "base_experience": poke["base_experience"],
+            "growth_rate": species.get("growth_rate", {}).get("name", "medium-fast"),
         }
 
         cache[key] = data
@@ -649,135 +650,140 @@ def parse_pk3(data: bytes) -> dict:
 # Gen 4 parser (.pk4 — 236 bytes, encrypted data block from PKHeX export)
 # ---------------------------------------------------------------------------
 
-# Block shuffle order lookup (index = pv % 24)
-BLOCK_ORDER = [
-    [0,1,2,3],[0,1,3,2],[0,2,1,3],[0,3,1,2],[0,2,3,1],[0,3,2,1],
-    [1,0,2,3],[1,0,3,2],[2,0,1,3],[3,0,1,2],[2,0,3,1],[3,0,2,1],
-    [1,2,0,3],[1,3,0,2],[2,1,0,3],[3,1,0,2],[2,3,0,1],[3,2,0,1],
-    [1,2,3,0],[1,3,2,0],[2,1,3,0],[3,1,2,0],[2,3,1,0],[3,2,1,0],
-]
-
-def gen4_prng(seed):
-    """Linear congruential PRNG used by Gen4."""
-    return (0x41C64E6D * seed + 0x6073) & 0xFFFFFFFF
-
-def decrypt_gen4(data: bytes) -> bytes:
-    """Decrypt the 128-byte data block (bytes 8-136) and unshuffle blocks."""
-    pv = struct.unpack_from('<I', data, 0)[0]
-    checksum = struct.unpack_from('<H', data, 6)[0]
-
-    # XOR-decrypt the 128-byte block using checksum as seed
-    seed = checksum
-    decrypted = bytearray(data[8:136])
-    for i in range(0, 128, 2):
-        seed = gen4_prng(seed)
-        key = (seed >> 16) & 0xFFFF
-        val = struct.unpack_from('<H', decrypted, i)[0]
-        struct.pack_into('<H', decrypted, i, val ^ key)
-
-    # Unshuffle four 32-byte blocks
-    order = BLOCK_ORDER[pv % 24]
-    blocks = [bytes(decrypted[i*32:(i+1)*32]) for i in range(4)]
-    unshuffled = bytearray(128)
-    for dest, src in enumerate(order):
-        unshuffled[dest*32:(dest+1)*32] = blocks[src]
-
-    # Decrypt battle stats (bytes 136-236) using PV as seed
-    battle = bytearray(data[136:236])
-    seed = pv
-    for i in range(0, len(battle), 2):
-        seed = gen4_prng(seed)
-        key = (seed >> 16) & 0xFFFF
-        val = struct.unpack_from('<H', battle, i)[0]
-        struct.pack_into('<H', battle, i, val ^ key)
-
-    return bytes(data[:8]) + bytes(unshuffled) + bytes(battle)
+NATURES_GEN4 = NATURES_GEN3  # same list
 
 def decode_gen4_string(data: bytes, max_len: int) -> str:
-    """Gen4 uses UTF-16LE, terminated by 0xFFFF."""
+    """Gen4 uses a custom 2-byte encoding. A=0x012B, a=0x0145, 0xFFFF=terminator."""
+    GEN4_CHARS = {}
+    for i, c in enumerate('ABCDEFGHIJKLMNOPQRSTUVWXYZ'):
+        GEN4_CHARS[0x012B + i] = c
+    for i, c in enumerate('abcdefghijklmnopqrstuvwxyz'):
+        GEN4_CHARS[0x0145 + i] = c
+    GEN4_CHARS[0x0121] = ' '
     chars = []
     for i in range(0, max_len * 2, 2):
+        if i + 1 >= len(data): break
         code = struct.unpack_from('<H', data, i)[0]
-        if code == 0xFFFF:
-            break
-        if code != 0x0000:
-            try:
-                chars.append(chr(code))
-            except Exception:
-                pass
+        if code == 0xFFFF: break
+        ch = GEN4_CHARS.get(code, '')
+        if ch: chars.append(ch)
     return ''.join(chars).strip()
+
+def decode_gen5_string(data: bytes, max_len: int) -> str:
+    """Gen5 uses standard UTF-16LE, terminated by 0xFFFF."""
+    chars = []
+    for i in range(0, max_len * 2, 2):
+        if i + 1 >= len(data): break
+        code = struct.unpack_from('<H', data, i)[0]
+        if code == 0xFFFF: break
+        if code != 0:
+            try: chars.append(chr(code))
+            except: pass
+    return ''.join(chars).strip()
+
+def level_from_exp(exp: int, growth: str = 'slow') -> int:
+    """Derive level from EXP. Defaults to Slow (most legendaries).
+    Growth rate is fetched from PokéAPI species data when available."""
+    for lv in range(1, 100):
+        if growth == 'slow':
+            nxt = int(5 * (lv + 1) ** 3 / 4)
+        elif growth == 'fast':
+            nxt = int(4 * (lv + 1) ** 3 / 5)
+        elif growth == 'medium-slow':
+            n = lv + 1
+            nxt = max(0, int(6*n**3/5 - 15*n**2 + 100*n - 140))
+        else:  # medium-fast default
+            nxt = (lv + 1) ** 3
+        if exp < nxt:
+            return lv
+    return 100
 
 NATURES_GEN4 = NATURES_GEN3  # same list
 
 def parse_pk4(raw: bytes) -> dict:
-    if len(raw) < 236:
+    """Parse a PKHeX-exported .pk4 file.
+
+    PKHeX exports .pk4 files already decrypted and unshuffled — same as .pk3.
+    NO decryption is needed. Read fixed offsets directly.
+
+    Two formats detected by file size:
+    BOX format (136 bytes) — confirmed from real Pearl Palkia file:
+      0-3:   PID
+      6-7:   checksum (unused — file already decrypted)
+      Block A (8-39):
+        8:   species (uint16)
+        10:  held item (uint16)
+        12:  OT ID (uint16)
+        14:  OT SID (uint16)
+        16:  EXP (uint32)
+        20:  friendship (uint8)
+        22:  ability index (uint8)
+      Block B (40-71):
+        40:  moves 1-4 (4 × uint16)
+        48:  PP 1-4 (4 × uint8)
+      Block C (72-103):
+        72:  nickname (11 × uint16, Gen4 encoding, 0xFFFF terminated)
+      Block D (104-135):
+        104: OT name (7 × uint16, Gen4 encoding, 0xFFFF terminated)
+        128: IV word (packed uint32)
+      Level: derived from EXP (no battle stats block in box format)
+
+    PARTY format (236 bytes):
+      Same layout as box, plus battle stats block (bytes 136-235):
+        140: level (uint8)
+    """
+    if len(raw) < 136:
         return None
 
-    pv = struct.unpack_from('<I', raw, 0)[0]
-
-    # Decrypt
-    data = decrypt_gen4(raw)
-
-    # Block A (offset 8): species, held item, OT IDs, exp, friendship, ability
-    species     = struct.unpack_from('<H', data, 8)[0]
+    pv         = struct.unpack_from('<I', raw, 0)[0]
+    species    = struct.unpack_from('<H', raw, 8)[0]
     if species == 0 or species > 493:
         return None
-    held_item   = struct.unpack_from('<H', data, 10)[0]
-    ot_id       = struct.unpack_from('<H', data, 12)[0]
-    ot_sid      = struct.unpack_from('<H', data, 14)[0]
-    exp         = struct.unpack_from('<I', data, 16)[0]
-    friendship  = data[20]
-    ability_idx = data[22]
 
-    # Block B (offset 40): moves + PP
-    moves = struct.unpack_from('<4H', data, 40)
-    pp    = struct.unpack_from('<4B', data, 48)
+    held_item  = struct.unpack_from('<H', raw, 10)[0]
+    ot_id      = struct.unpack_from('<H', raw, 12)[0]
+    ot_sid     = struct.unpack_from('<H', raw, 14)[0]
+    exp        = struct.unpack_from('<I', raw, 16)[0]
+    friendship = raw[20]
+    ability_idx= raw[22]
 
-    # Block C (offset 72): nickname, OT name
-    nickname = decode_gen4_string(data[72:], 11)
-    ot_name  = decode_gen4_string(data[88:], 7)  # shifted for block C layout
+    moves      = struct.unpack_from('<4H', raw, 40)
+    pp         = struct.unpack_from('<4B', raw, 48)
 
-    # Block D (offset 104): IVs, EVs, ribbons
-    # EVs at 104
-    ev_hp  = data[104]
-    ev_atk = data[105]
-    ev_def = data[106]
-    ev_spd = data[107]
-    ev_spa = data[108]
-    ev_spd2= data[109]
+    nickname   = decode_gen5_string(raw[72:], 11)
+    ot_name    = decode_gen5_string(raw[104:], 7)
 
-    # IVs packed at 116
-    iv_raw  = struct.unpack_from('<I', data, 116)[0]
-    iv_hp   = (iv_raw >> 0)  & 0x1F
-    iv_atk  = (iv_raw >> 5)  & 0x1F
-    iv_def  = (iv_raw >> 10) & 0x1F
-    iv_spd  = (iv_raw >> 15) & 0x1F
-    iv_spa  = (iv_raw >> 20) & 0x1F
-    iv_spd2 = (iv_raw >> 25) & 0x1F
-    is_egg  = bool((iv_raw >> 30) & 1)
+    # EVs at bytes 30-35 (confirmed from Porygon/Platinum, Chatot/Diamond, Palkia/Pearl)
+    ev_hp  = raw[30]; ev_atk = raw[31]; ev_def = raw[32]
+    ev_spd = raw[33]; ev_spa = raw[34]; ev_spd2= raw[35]
 
-    nature = NATURES_GEN4[pv % 25]
+    iv_raw     = struct.unpack_from('<I', raw, 128)[0]
+    iv_hp      = (iv_raw >> 0)  & 0x1F
+    iv_atk     = (iv_raw >> 5)  & 0x1F
+    iv_def     = (iv_raw >> 10) & 0x1F
+    iv_spd     = (iv_raw >> 15) & 0x1F
+    iv_spa     = (iv_raw >> 20) & 0x1F
+    iv_spd2    = (iv_raw >> 25) & 0x1F
+    is_egg     = bool((iv_raw >> 30) & 1)
 
-    # Shiny check
-    shiny = ((ot_id ^ ot_sid ^ (pv >> 16) ^ (pv & 0xFFFF)) < 8)
+    nature     = NATURES_GEN4[pv % 25]
+    shiny      = ((ot_id ^ ot_sid ^ (pv >> 16) ^ (pv & 0xFFFF)) < 8)
 
-    # Gender from battle stats block (offset 136+)
-    level   = data[140] if len(data) > 140 else 0
+    # Level: use battle stats block if party format, otherwise derive from EXP
+    if len(raw) >= 236:
+        level = raw[140]
+        level_from_exp_flag = False
+    else:
+        level = level_from_exp(exp, 'medium-fast')  # corrected after API fetch
+        level_from_exp_flag = True
 
-    # Game of origin — Block D offset 30 (abs offset 104+30 = but block D starts at 104 after decrypt)
-    # In the decrypted layout block D is at bytes 104-136; origin_game is at offset 31 within block D
-    # Origin game is at byte 0x1F within Block D.
-    # After decryption: Block A=8..40, B=40..72, C=72..104, D=104..136
-    # So Block D byte 0x1F = absolute byte 104+31 = 135
+    # Origin game at byte 95 (confirmed across Platinum, Diamond, Pearl files)
     GEN4_GAMES = {
-        1:  "Sapphire",    2:  "Ruby",       3:  "Emerald",
-        4:  "FireRed",     5:  "LeafGreen",
-        7:  "HeartGold",   8:  "SoulSilver",
-        10: "Diamond",     11: "Pearl",       12: "Platinum",
-        15: "Colosseum",   16: "XD",
+        1:'Sapphire', 2:'Ruby', 3:'Emerald', 4:'FireRed', 5:'LeafGreen',
+        7:'HeartGold', 8:'SoulSilver', 10:'Diamond', 11:'Pearl', 12:'Platinum',
+        15:'Colosseum', 16:'XD',
     }
-    origin_byte = data[135] if len(data) > 135 else 0
-    origin_game = GEN4_GAMES.get(origin_byte, f"Unknown (0x{origin_byte:02X})")
+    origin_game = GEN4_GAMES.get(raw[95], f'Unknown (0x{raw[95]:02X})')
 
     return {
         "filename": "",
@@ -788,6 +794,7 @@ def parse_pk4(raw: bytes) -> dict:
         "ot_name": ot_name,
         "ot_id": ot_id,
         "level": level,
+        "level_from_exp": level_from_exp_flag,
         "nature": nature,
         "shiny": shiny,
         "is_egg": is_egg,
@@ -820,88 +827,64 @@ def parse_pk4(raw: bytes) -> dict:
 #   - Nickname/OT string offsets slightly different in Block C
 
 def parse_pk5(raw: bytes) -> dict:
-    if len(raw) < 220:
+    """Parse a PKHeX-exported .pk5 file.
+
+    Like .pk4, PKHeX exports .pk5 already decrypted and unshuffled.
+    Same block layout as pk4 with one key difference:
+    Nature is stored explicitly at Block A byte 20 (abs offset 28),
+    not derived from PID % 25.
+    Species range: 1-649.
+
+    File sizes: 136 bytes (box) or 220 bytes (party, includes battle stats).
+    """
+    if len(raw) < 136:
         return None
 
-    pv = struct.unpack_from('<I', raw, 0)[0]
-
-    # Decrypt using same Gen4 routine — identical encryption
-    # but battle stats block is only bytes 136-220 (84 bytes)
-    checksum = struct.unpack_from('<H', raw, 6)[0]
-    seed = checksum
-    decrypted = bytearray(raw[8:136])
-    for i in range(0, 128, 2):
-        seed = gen4_prng(seed)
-        key = (seed >> 16) & 0xFFFF
-        val = struct.unpack_from('<H', decrypted, i)[0]
-        struct.pack_into('<H', decrypted, i, val ^ key)
-
-    order = BLOCK_ORDER[pv % 24]
-    blocks = [bytes(decrypted[i*32:(i+1)*32]) for i in range(4)]
-    unshuffled = bytearray(128)
-    for dest, src in enumerate(order):
-        unshuffled[dest*32:(dest+1)*32] = blocks[src]
-
-    battle = bytearray(raw[136:220])
-    seed = pv
-    for i in range(0, len(battle), 2):
-        seed = gen4_prng(seed)
-        key = (seed >> 16) & 0xFFFF
-        val = struct.unpack_from('<H', battle, i)[0]
-        struct.pack_into('<H', battle, i, val ^ key)
-
-    data = bytes(raw[:8]) + bytes(unshuffled) + bytes(battle)
-
-    # Block A (offset 8)
-    species    = struct.unpack_from('<H', data, 8)[0]
+    pv         = struct.unpack_from('<I', raw, 0)[0]
+    species    = struct.unpack_from('<H', raw, 8)[0]
     if species == 0 or species > 649:
         return None
-    held_item  = struct.unpack_from('<H', data, 10)[0]
-    ot_id      = struct.unpack_from('<H', data, 12)[0]
-    ot_sid     = struct.unpack_from('<H', data, 14)[0]
-    exp        = struct.unpack_from('<I', data, 16)[0]
-    friendship = data[20]
-    ability_idx = data[22]
-    # Gen5: nature stored explicitly at Block A byte 0x14 (abs offset 8+20=28)
-    nature_id  = data[28]
+
+    held_item  = struct.unpack_from('<H', raw, 10)[0]
+    ot_id      = struct.unpack_from('<H', raw, 12)[0]
+    ot_sid     = struct.unpack_from('<H', raw, 14)[0]
+    exp        = struct.unpack_from('<I', raw, 16)[0]
+    friendship = raw[20]
+    ability_idx= raw[22]
+    nature_id  = raw[28]
     nature     = NATURES_GEN3[nature_id % 25]
 
-    # Block B (offset 40): moves + PP
-    moves = struct.unpack_from('<4H', data, 40)
-    pp    = struct.unpack_from('<4B', data, 48)
+    moves      = struct.unpack_from('<4H', raw, 40)
+    pp         = struct.unpack_from('<4B', raw, 48)
 
-    # Block C (offset 72): nickname (11 chars UTF-16LE), OT name (8 chars)
-    nickname = decode_gen4_string(data[72:], 11)
-    ot_name  = decode_gen4_string(data[96:], 8)
+    nickname   = decode_gen4_string(raw[72:], 11)
+    ot_name    = decode_gen4_string(raw[104:], 7)
 
-    # Block D (offset 104): EVs, IVs, origin
-    ev_hp   = data[104]; ev_atk = data[105]; ev_def  = data[106]
-    ev_spd  = data[107]; ev_spa = data[108]; ev_spd2 = data[109]
+    iv_raw     = struct.unpack_from('<I', raw, 128)[0]
+    iv_hp      = (iv_raw >> 0)  & 0x1F
+    iv_atk     = (iv_raw >> 5)  & 0x1F
+    iv_def     = (iv_raw >> 10) & 0x1F
+    iv_spd     = (iv_raw >> 15) & 0x1F
+    iv_spa     = (iv_raw >> 20) & 0x1F
+    iv_spd2    = (iv_raw >> 25) & 0x1F
+    is_egg     = bool((iv_raw >> 30) & 1)
 
-    iv_raw  = struct.unpack_from('<I', data, 116)[0]
-    iv_hp   = (iv_raw >> 0)  & 0x1F
-    iv_atk  = (iv_raw >> 5)  & 0x1F
-    iv_def  = (iv_raw >> 10) & 0x1F
-    iv_spd  = (iv_raw >> 15) & 0x1F
-    iv_spa  = (iv_raw >> 20) & 0x1F
-    iv_spd2 = (iv_raw >> 25) & 0x1F
-    is_egg  = bool((iv_raw >> 30) & 1)
+    shiny      = ((ot_id ^ ot_sid ^ (pv >> 16) ^ (pv & 0xFFFF)) < 8)
 
-    shiny = ((ot_id ^ ot_sid ^ (pv >> 16) ^ (pv & 0xFFFF)) < 8)
+    # Battle stats block is zeroed in PKHeX pk5 exports — always derive from EXP
+    # Growth rate corrected post-API fetch in scan_directory
+    level = level_from_exp(exp, 'medium-fast')
 
-    # Level from battle stats block
-    level = data[140] if len(data) > 140 else 0
+    # EVs at same offsets as Gen 4 (same block layout)
+    ev_hp  = raw[30]; ev_atk = raw[31]; ev_def = raw[32]
+    ev_spd = raw[33]; ev_spa = raw[34]; ev_spd2= raw[35]
 
-    # Origin game at Block D byte 0x1F = abs byte 135
+    # Origin game at byte 95 — same as Gen 4 (unverified for Gen 5, assumed same)
     GEN5_GAMES = {
-        20: "Black",    21: "White",
-        22: "Black 2",  23: "White 2",
-        # also carries Gen4 IDs for transferred pokemon
-        7:  "HeartGold", 8: "SoulSilver",
-        10: "Diamond",  11: "Pearl", 12: "Platinum",
+        20:'White', 21:'Black', 22:'White 2', 23:'Black 2',
+        7:'HeartGold', 8:'SoulSilver', 10:'Diamond', 11:'Pearl', 12:'Platinum',
     }
-    origin_byte = data[135] if len(data) > 135 else 0
-    origin_game = GEN5_GAMES.get(origin_byte, f"Unknown (0x{origin_byte:02X})")
+    origin_game = GEN5_GAMES.get(raw[95], f'Unknown (0x{raw[95]:02X})')
 
     return {
         "filename": "",
@@ -912,6 +895,7 @@ def parse_pk5(raw: bytes) -> dict:
         "ot_name": ot_name,
         "ot_id": ot_id,
         "level": level,
+        "level_from_exp": True,
         "nature": nature,
         "shiny": shiny,
         "is_egg": is_egg,
@@ -930,6 +914,7 @@ def parse_pk5(raw: bytes) -> dict:
         },
         "held_item_id": held_item,
     }
+
 
 # ---------------------------------------------------------------------------
 # Directory scanner
@@ -979,6 +964,13 @@ def scan_directory(directory: str):
             # Enrich species from PokéAPI
             api_data = fetch_pokemon_data(poke["species_id"], cache)
             poke["api"] = api_data or None
+
+            # For Gen 4/5 box format, level was derived from EXP using a default
+            # growth rate. Now that we have the real growth rate from PokéAPI,
+            # recalculate with the correct value.
+            if poke.get("level_from_exp") and api_data:
+                growth = api_data.get("growth_rate", "medium-fast")
+                poke["level"] = level_from_exp(poke["experience"], growth)
 
             # Enrich ability descriptions, attach to species entry, persist to cache
             if api_data:
