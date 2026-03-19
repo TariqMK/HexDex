@@ -522,6 +522,165 @@ def parse_pk2(data: bytes) -> dict:
     }
 
 # ---------------------------------------------------------------------------
+# Gen 7 parser (.pk7 — 232 bytes, pre-decrypted PKHeX export)
+# ---------------------------------------------------------------------------
+# Identical format to pk6. Same offsets for all fields.
+# Only difference: species range 1-809, and different origin game IDs.
+# Sun=30, Moon=31, Ultra Sun=32, Ultra Moon=33
+# Confirmed from real Sun, Moon, Ultra Sun, Ultra Moon files.
+
+def parse_pk7(raw: bytes) -> dict:
+    if len(raw) < 232:
+        return None
+
+    pv         = struct.unpack_from('<I', raw, 0)[0]
+    species    = struct.unpack_from('<H', raw, 8)[0]
+    if species == 0 or species > 809:
+        return None
+
+    held_item  = struct.unpack_from('<H', raw, 10)[0]
+    ot_id      = struct.unpack_from('<H', raw, 12)[0]
+    ot_sid     = struct.unpack_from('<H', raw, 14)[0]
+    exp        = struct.unpack_from('<I', raw, 16)[0]
+    friendship = raw[20]
+    nature_id  = raw[28]
+    nature     = NATURES_GEN3[nature_id % 25]
+
+    ev_hp  = raw[30]; ev_atk = raw[31]; ev_def = raw[32]
+    ev_spd = raw[33]; ev_spa = raw[34]; ev_spd2= raw[35]
+
+    nickname   = decode_gen5_string(raw[64:], 12)
+    moves      = struct.unpack_from('<4H', raw, 90)
+    pp         = struct.unpack_from('<4B', raw, 98)
+
+    iv_raw     = struct.unpack_from('<I', raw, 116)[0]
+    iv_hp      = (iv_raw >> 0)  & 0x1F
+    iv_atk     = (iv_raw >> 5)  & 0x1F
+    iv_def     = (iv_raw >> 10) & 0x1F
+    iv_spd     = (iv_raw >> 15) & 0x1F
+    iv_spa     = (iv_raw >> 20) & 0x1F
+    iv_spd2    = (iv_raw >> 25) & 0x1F
+    is_egg     = bool((iv_raw >> 30) & 1)
+
+    ot_name    = decode_gen5_string(raw[176:], 12)
+    level      = raw[221]
+
+    GEN7_GAMES = {
+        30: 'Sun', 31: 'Moon',
+        32: 'Ultra Sun', 33: 'Ultra Moon',
+    }
+    origin_game = GEN7_GAMES.get(raw[223], f'Unknown (0x{raw[223]:02X})')
+    shiny       = ((ot_id ^ ot_sid ^ (pv >> 16) ^ (pv & 0xFFFF)) < 8)
+
+    return {
+        "filename": "",
+        "generation": 7,
+        "origin_game": origin_game,
+        "species_id": species,
+        "nickname": nickname,
+        "ot_name": ot_name,
+        "ot_id": ot_id,
+        "level": level,
+        "nature": nature,
+        "shiny": shiny,
+        "is_egg": is_egg,
+        "experience": exp,
+        "friendship": friendship,
+        "moves": list(moves),
+        "pp": list(pp),
+        "ivs": {
+            "hp": iv_hp, "attack": iv_atk, "defense": iv_def,
+            "speed": iv_spd, "sp_atk": iv_spa, "sp_def": iv_spd2
+        },
+        "evs": {
+            "hp": ev_hp, "attack": ev_atk, "defense": ev_def,
+            "speed": ev_spd, "sp_atk": ev_spa, "sp_def": ev_spd2
+        },
+        "held_item_id": held_item,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Gen 6 parser (.pk6 — 232 bytes, pre-decrypted PKHeX export)
+# ---------------------------------------------------------------------------
+# Confirmed offsets from real X, Y, Omega Ruby, Alpha Sapphire files.
+# PKHeX exports already decrypted — read fixed offsets directly.
+# File is always 232 bytes (single format, no party/box split).
+# Gen6 uses standard UTF-16LE strings (null 0x0000 terminated).
+# Species range: 1–721.
+
+def parse_pk6(raw: bytes) -> dict:
+    if len(raw) < 232:
+        return None
+
+    pv         = struct.unpack_from('<I', raw, 0)[0]
+    species    = struct.unpack_from('<H', raw, 8)[0]
+    if species == 0 or species > 721:
+        return None
+
+    held_item  = struct.unpack_from('<H', raw, 10)[0]
+    ot_id      = struct.unpack_from('<H', raw, 12)[0]
+    ot_sid     = struct.unpack_from('<H', raw, 14)[0]
+    exp        = struct.unpack_from('<I', raw, 16)[0]
+    friendship = raw[20]
+    nature_id  = raw[28]
+    nature     = NATURES_GEN3[nature_id % 25]
+
+    ev_hp  = raw[30]; ev_atk = raw[31]; ev_def = raw[32]
+    ev_spd = raw[33]; ev_spa = raw[34]; ev_spd2= raw[35]
+
+    nickname   = decode_gen5_string(raw[64:], 12)
+    moves      = struct.unpack_from('<4H', raw, 90)
+    pp         = struct.unpack_from('<4B', raw, 98)
+
+    iv_raw     = struct.unpack_from('<I', raw, 116)[0]
+    iv_hp      = (iv_raw >> 0)  & 0x1F
+    iv_atk     = (iv_raw >> 5)  & 0x1F
+    iv_def     = (iv_raw >> 10) & 0x1F
+    iv_spd     = (iv_raw >> 15) & 0x1F
+    iv_spa     = (iv_raw >> 20) & 0x1F
+    iv_spd2    = (iv_raw >> 25) & 0x1F
+    is_egg     = bool((iv_raw >> 30) & 1)
+
+    ot_name    = decode_gen5_string(raw[176:], 12)
+    level      = raw[221]
+
+    GEN6_GAMES = {
+        24: 'X', 25: 'Y',
+        26: 'Alpha Sapphire', 27: 'Omega Ruby',
+    }
+    origin_game = GEN6_GAMES.get(raw[223], f'Unknown (0x{raw[223]:02X})')
+    shiny       = ((ot_id ^ ot_sid ^ (pv >> 16) ^ (pv & 0xFFFF)) < 8)
+
+    return {
+        "filename": "",
+        "generation": 6,
+        "origin_game": origin_game,
+        "species_id": species,
+        "nickname": nickname,
+        "ot_name": ot_name,
+        "ot_id": ot_id,
+        "level": level,
+        "nature": nature,
+        "shiny": shiny,
+        "is_egg": is_egg,
+        "experience": exp,
+        "friendship": friendship,
+        "moves": list(moves),
+        "pp": list(pp),
+        "ivs": {
+            "hp": iv_hp, "attack": iv_atk, "defense": iv_def,
+            "speed": iv_spd, "sp_atk": iv_spa, "sp_def": iv_spd2
+        },
+        "evs": {
+            "hp": ev_hp, "attack": ev_atk, "defense": ev_def,
+            "speed": ev_spd, "sp_atk": ev_spa, "sp_def": ev_spd2
+        },
+        "held_item_id": held_item,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Gen 3 parser (.pk3 — 100 bytes, unencrypted from PKHeX export)
 # ---------------------------------------------------------------------------
 
@@ -935,7 +1094,7 @@ def scan_directory(directory: str):
 
         ext = os.path.splitext(fname)[1].lower()
 
-        if ext not in ('.pk1', '.pk2', '.pk3', '.pk4', '.pk5'):
+        if ext not in ('.pk1', '.pk2', '.pk3', '.pk4', '.pk5', '.pk6', '.pk7'):
             continue
 
         try:
@@ -952,6 +1111,10 @@ def scan_directory(directory: str):
                 poke = parse_pk4(raw)
             elif ext == '.pk5':
                 poke = parse_pk5(raw)
+            elif ext == '.pk6':
+                poke = parse_pk6(raw)
+            elif ext == '.pk7':
+                poke = parse_pk7(raw)
             else:
                 continue
 
