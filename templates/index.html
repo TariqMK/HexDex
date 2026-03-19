@@ -59,7 +59,14 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .poke-card:hover .card-sprite{transform:scale(1.1)}
 .card-name{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.9rem;text-align:center;line-height:1.1;text-transform:capitalize}
 .card-level{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text-dim)}
-.gen-badge{position:absolute;top:5px;left:7px;font-family:'Share Tech Mono',monospace;font-size:.52rem;color:var(--text-mute);background:var(--surface3);padding:1px 4px;border-radius:2px}
+.gen-badge{position:absolute;top:5px;left:7px;font-family:'Share Tech Mono',monospace;font-size:.55rem;font-weight:700;color:#fff;padding:2px 5px;border-radius:3px;letter-spacing:.5px;opacity:.9}
+.gen-badge[data-gen="1"]{background:#b34a4a}
+.gen-badge[data-gen="2"]{background:#4a7fb3}
+.gen-badge[data-gen="3"]{background:#4a9e5c}
+.gen-badge[data-gen="4"]{background:#7a5cb3}
+.gen-badge[data-gen="5"]{background:#b3874a}
+.gen-badge[data-gen="6"]{background:#b34a8a}
+.gen-badge[data-gen="7"]{background:#4a9eb3}
 .variant-pip{position:absolute;bottom:7px;right:7px;background:var(--accent);color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.58rem;letter-spacing:.5px;padding:1px 5px;border-radius:3px}
 .has-note-dot{position:absolute;bottom:7px;left:7px;width:6px;height:6px;background:var(--yellow);border-radius:50%}
 /* Shiny — diagonal holographic sweep across card */
@@ -257,6 +264,9 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
     <input id="dirInput" type="text" placeholder="Paste your Pokémon folder path…  e.g. C:\Users\You\Pokemon\MyCollection">
   </div>
   <button class="btn btn-ghost" onclick="browseDirectory()" title="Pick a folder">Browse…</button>
+  <label class="shiny-toggle" style="font-size:.75rem;white-space:nowrap">
+    <input type="checkbox" id="scanRecursive"> Subfolders
+  </label>
   <button class="btn btn-accent" onclick="scanDirectory()">SCAN</button>
   <button class="btn btn-ghost" onclick="exportCSV()" title="Export collection to CSV">⬇ CSV</button>
   <div class="header-stats" id="headerStats">—</div>
@@ -291,16 +301,20 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
     <option value="shiny">Sort: Shiny first</option>
   </select>
   <label class="shiny-toggle">
-    <input type="checkbox" id="filterShiny" onchange="applyFilters()">
-    ✨ Shiny only
-  </label>
-  <label class="shiny-toggle">
     <input type="checkbox" id="filterFav" onchange="applyFilters()">
     ⭐ Favourites
   </label>
   <label class="shiny-toggle">
+    <input type="checkbox" id="filterShiny" onchange="applyFilters()">
+    ✨ Shinies
+  </label>
+  <label class="shiny-toggle">
     <input type="checkbox" id="filterLegendary" onchange="applyFilters()">
     🌟 Legendaries
+  </label>
+  <label class="shiny-toggle">
+    <input type="checkbox" id="filterEgg" onchange="applyFilters()">
+    🥚 Eggs
   </label>
   <div class="tag-filter-wrap" id="tagFilterWrap">
     <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
@@ -444,10 +458,11 @@ async function scanDirectory() {
   document.getElementById('headerStats').innerHTML = '…';
   closePanel();
   try {
+    const recursive = document.getElementById('scanRecursive').checked;
     const res = await fetch('/api/scan', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({dir})
+      body: JSON.stringify({dir, recursive})
     });
     const data = await res.json();
     if (data.error){
@@ -472,20 +487,18 @@ async function scanDirectory() {
 
 // ── Export CSV ────────────────────────────────────────────────────
 async function exportCSV() {
-  if (!currentDir){alert('Scan a folder first.');return}
+  if (!allPokemon.length){alert('Scan a folder first.');return}
   const res = await fetch('/api/export-csv', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({dir: currentDir})
+    body: JSON.stringify({pokemon: allPokemon})
   });
-  if (!res.ok){alert('Export failed.');return}
-  const blob = await res.blob();
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const today = new Date().toISOString().slice(0,10); // YYYY-MM-DD
-  a.href = url; a.download = `${today}-pokedex_export.csv`; a.click();
-  URL.revokeObjectURL(url);
+  const data = await res.json();
+  if (!res.ok || data.error){alert('Export failed: ' + (data.error||'unknown error'));return}
+  if (data.cancelled) return;  // user dismissed the dialog
+  alert(`Saved to:\n${data.path}`);
 }
+
 
 // ── Tag dropdown ──────────────────────────────────────────────────
 let activeTags = new Set();
@@ -573,6 +586,7 @@ function applyFilters() {
   const shinyQ     = document.getElementById('filterShiny').checked;
   const favQ       = document.getElementById('filterFav')?.checked||false;
   const legendaryQ = document.getElementById('filterLegendary')?.checked||false;
+  const eggQ       = document.getElementById('filterEgg')?.checked||false;
   const sortQ      = document.getElementById('sortBy').value;
 
   filteredPokemon = allPokemon.filter(p=>{
@@ -582,6 +596,7 @@ function applyFilters() {
     if(shinyQ&&!p.shiny)return false;
     if(favQ&&!p.favourite)return false;
     if(legendaryQ&&!LEGENDARY_IDS.has(p.species_id))return false;
+    if(eggQ&&!p.is_egg)return false;
     // Multi-tag: pokemon must have ALL active tags
     if(activeTags.size>0){
       const pTags=(p.tags||[]).map(t=>t.toLowerCase());
@@ -606,6 +621,7 @@ function applyFilters() {
 
 // ── Grid ──────────────────────────────────────────────────────────
 function getSpriteUrl(p,shiny){
+  if(p.is_egg) return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/bag/bag-item-pocket-icon.png';
   if(shiny&&p.shiny&&p.api?.sprite_shiny_hd)return p.api.sprite_shiny_hd;
   if(p.api?.sprite_hd)return p.api.sprite_hd;
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.species_id}.png`;
@@ -627,13 +643,15 @@ function renderGrid() {
   }
   grid.innerHTML=errHtml+groupedCards.map((group,gi)=>{
     const p=group.members[group.activeVariant],api=p.api||{};
-    const name=api.name?api.name.charAt(0).toUpperCase()+api.name.slice(1):`#${p.species_id}`;
+    const name = p.is_egg
+      ? `🥚 Egg (${api.name?api.name.charAt(0).toUpperCase()+api.name.slice(1):`#${p.species_id}`})`
+      : api.name?api.name.charAt(0).toUpperCase()+api.name.slice(1):`#${p.species_id}`;
     const dexNo=api.id?`#${String(api.id).padStart(3,'0')}`:''
     const sprite=getSpriteUrl(p,false);
     const hasNote=group.members.some(m=>m.note||m.tags?.length);
     return `<div class="poke-card${activeCardIndex===gi?' active':''}" id="card-${gi}"
       onclick="selectCard(${gi})" style="animation-delay:${Math.min(gi*.02,.4)}s">
-      <div class="gen-badge">GEN ${p.generation}</div>
+      <div class="gen-badge" data-gen="${p.generation}">G${p.generation}</div>
       ${p.shiny?'<div class="shiny-sweep"></div>':''}
       ${group.members.length>1?`<div class="variant-pip">${group.members.length}</div>`:''}
       ${hasNote?'<div class="has-note-dot" title="Has notes/tags"></div>':''}
@@ -688,6 +706,38 @@ function renderPanel(group){
   const name=api.name?api.name.charAt(0).toUpperCase()+api.name.slice(1):`#${p.species_id}`;
   const dexNo=api.id?`#${String(api.id).padStart(3,'0')}`:`#${p.species_id}`;
   const nick=p.nickname&&p.nickname.toLowerCase()!==(api.name||'')?p.nickname:'';
+
+  // EGG — simplified panel
+  if(p.is_egg){
+    document.getElementById('panelHero').innerHTML=`
+      <button class="panel-fav-btn${p.favourite?' fav-active':''}"
+        title="${p.favourite?'Remove from favourites':'Add to favourites'}"
+        onclick="toggleFavFromPanel()">⭐</button>
+      <div style="font-size:5rem;margin:18px 0 8px">🥚</div>
+      ${p.shiny?'<div class="shiny-note">✨ SHINY EGG</div>':''}
+      <div class="panel-name">Egg</div>
+      <div class="panel-nickname">${name}</div>
+      <div class="panel-dex">Gen ${p.generation} · ${p.origin_game||'Unknown'}</div>
+    `;
+    const currentNote=p.note||'';
+    const currentTags=(p.tags||[]);
+    const tagsHtml=currentTags.map((t,i)=>
+      `<div class="tag-chip">${t}<span class="tag-chip-remove" onclick="removeTag(${i})">✕</span></div>`
+    ).join('');
+    document.getElementById('panelScroll').innerHTML=`
+      <div class="section"><div class="section-title">Notes</div>
+        <textarea class="notes-area" id="noteText" placeholder="Add a note for this egg…">${currentNote}</textarea>
+      </div>
+      <div class="section"><div class="section-title">Tags</div>
+        <div class="tags-input-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
+          ${tagsHtml}
+          <input class="tag-input" id="tagInput" placeholder="Add tag…" onkeydown="handleTagInput(event)">
+        </div>
+      </div>
+      <button class="save-note-btn" onclick="saveNote()">SAVE</button>
+    `;
+    return;
+  }
 
   // HERO
   document.getElementById('panelHero').innerHTML=`
@@ -824,6 +874,7 @@ function renderPanel(group){
       <div class="meta-cell"><div class="meta-cell-label">OT ID</div><div class="meta-cell-value">${p.ot_id||'—'}</div></div>
       <div class="meta-cell"><div class="meta-cell-label">Height</div><div class="meta-cell-value">${hM}</div></div>
       <div class="meta-cell"><div class="meta-cell-label">Weight</div><div class="meta-cell-value">${wKg}</div></div>
+      ${p.held_item ? `<div class="meta-cell has-tooltip"><div class="meta-cell-label">Held Item</div><div class="meta-cell-value">${p.held_item.name}${p.held_item.effect?`<span class="tooltip">${p.held_item.effect}</span>`:''}</div></div>` : ''}
     </div>
     <div class="section"><div class="section-title">Evolution</div>${evoHtml}</div>
     <div class="section"><div class="section-title">Stats</div>
