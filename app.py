@@ -212,6 +212,141 @@ def fetch_ability_data(ability_name: str, cache: dict) -> dict | None:
         print(f"PokéAPI ability error for {ability_name}: {e}")
         return None
 
+
+# ---------------------------------------------------------------------------
+# Item ID translation tables for Gen 2 and Gen 3
+# ---------------------------------------------------------------------------
+# Gen 4-7 item IDs match PokéAPI directly. Gen 2-3 use different internal
+# numbering, so we map them to PokéAPI item slugs (name-based lookup).
+# Only holdable items are included — key items, TMs, balls are excluded.
+# Sources: Bulbapedia item index lists cross-referenced with PokéAPI slugs.
+
+# Gen 2 (Gold/Silver/Crystal) internal item ID -> PokéAPI slug
+GEN2_ITEM_SLUGS = {
+    # Vitamins / battle items
+    26: "hp-up", 27: "protein", 28: "iron", 29: "carbos", 30: "calcium",
+    31: "rare-candy", 32: "pp-up", 33: "zinc", 34: "pp-max",
+    # In-battle stat boosters
+    36: "guard-spec", 37: "dire-hit", 38: "x-attack", 39: "x-defend",
+    40: "x-speed", 41: "x-accuracy", 42: "x-sp-atk",
+    # Held items (the ones that matter most for Gen2)
+    178: "brightpowder",   179: "lucky-punch",  180: "metal-powder",
+    181: "stick",          182: "heart-scale",
+    196: "kings-rock",     197: "silver-powder",
+    198: "amulet-coin",    199: "cleanse-tag",
+    211: "soul-dew",       212: "deep-sea-tooth", 213: "deep-sea-scale",
+    214: "smoke-ball",     215: "everstone",
+    216: "focus-band",     217: "lucky-egg",    218: "scope-lens",
+    219: "metal-coat",     220: "leftovers",    221: "dragon-scale",
+    222: "light-ball",     223: "soft-sand",    224: "hard-stone",
+    225: "miracle-seed",   226: "blackglasses", 227: "black-belt",
+    228: "magnet",         229: "mystic-water", 230: "sharp-beak",
+    231: "poison-barb",    232: "nevermeltice", 233: "spell-tag",
+    234: "twistedspoon",   235: "charcoal",     236: "dragon-fang",
+    237: "silk-scarf",     238: "up-grade",     239: "shell-bell",
+    240: "sea-incense",    241: "lax-incense",  242: "lucky-punch",
+    243: "metal-powder",   244: "thick-club",   245: "stick",
+    # Berries (Gen2 berries map to their Gen3+ equivalents)
+    197: "oran-berry",     198: "sitrus-berry",
+    # Common consumable held items
+    246: "scope-lens",     247: "metal-coat",   248: "leftovers",
+    249: "dragon-scale",   250: "light-ball",
+}
+
+# Gen 3 (RS/E/FR/LG) internal item ID -> PokéAPI slug
+GEN3_ITEM_SLUGS = {
+    # Vitamins
+    17: "hp-up", 18: "protein", 19: "iron", 20: "carbos", 21: "calcium",
+    22: "rare-candy", 23: "pp-up", 24: "zinc", 25: "pp-max",
+    # In-battle items
+    26: "guard-spec", 27: "dire-hit", 28: "x-attack", 29: "x-defend",
+    30: "x-speed", 31: "x-accuracy", 32: "x-sp-atk",
+    # Key held items by Gen3 internal ID (from Bulbapedia Gen III index list)
+    178: "kings-rock",     179: "silverpowder",  180: "amulet-coin",
+    181: "cleanse-tag",    182: "soul-dew",       183: "deep-sea-tooth",
+    184: "deep-sea-scale", 185: "smoke-ball",     186: "everstone",
+    187: "focus-band",     188: "lucky-egg",      189: "scope-lens",
+    190: "metal-coat",     191: "leftovers",      192: "dragon-scale",
+    193: "light-ball",     194: "soft-sand",      195: "hard-stone",
+    196: "miracle-seed",   197: "blackglasses",   198: "black-belt",
+    199: "magnet",         200: "mystic-water",   201: "sharp-beak",
+    202: "poison-barb",    203: "nevermeltice",   204: "spell-tag",
+    205: "twistedspoon",   206: "charcoal",       207: "dragon-fang",
+    208: "silk-scarf",     209: "up-grade",       210: "shell-bell",
+    211: "sea-incense",    212: "lax-incense",    213: "lucky-punch",
+    214: "metal-powder",   215: "thick-club",     216: "stick",
+    # Berries (Gen3 has many berries; common held ones)
+    133: "oran-berry",     134: "sitrus-berry",   135: "leppa-berry",
+    136: "lum-berry",      137: "rawst-berry",    138: "aspear-berry",
+    139: "persim-berry",   140: "chesto-berry",   141: "pecha-berry",
+    142: "cheri-berry",    143: "figy-berry",     144: "wiki-berry",
+    145: "mago-berry",     146: "aguav-berry",    147: "iapapa-berry",
+    148: "razz-berry",     149: "bluk-berry",     150: "nanab-berry",
+    151: "wepear-berry",   152: "pinap-berry",    153: "pomeg-berry",
+    154: "kelpsy-berry",   155: "qualot-berry",   156: "hondew-berry",
+    157: "grepa-berry",    158: "tamato-berry",   159: "cornn-berry",
+    160: "magost-berry",   161: "rabuta-berry",   162: "nomel-berry",
+    163: "spelon-berry",   164: "pamtre-berry",   165: "watmel-berry",
+    166: "durin-berry",    167: "belue-berry",    168: "liechi-berry",
+    169: "ganlon-berry",   170: "salac-berry",    171: "petaya-berry",
+    172: "apicot-berry",   173: "lansat-berry",   174: "starf-berry",
+    175: "enigma-berry",
+}
+
+def translate_item_id(item_id: int, generation: int):
+    """Translate a Gen2/3 internal item ID to a PokéAPI-compatible identifier.
+    Returns the item_id unchanged for Gen4+ (direct PokéAPI match).
+    Returns a slug string for Gen2/3, or None if unknown."""
+    if generation <= 1 or item_id == 0:
+        return None
+    if generation == 2:
+        return GEN2_ITEM_SLUGS.get(item_id, None)
+    if generation == 3:
+        return GEN3_ITEM_SLUGS.get(item_id, None)
+    # Gen 4-7: IDs match PokéAPI directly
+    return item_id
+
+def fetch_item_data(item_id, cache: dict) -> dict | None:
+    """Fetch English name and description for a held item.
+    item_id can be an int (Gen4+ direct PokéAPI ID) or a slug string (Gen2/3).
+    Cached under item:{item_id}. Returns None for item_id 0 or None."""
+    if not item_id:
+        return None
+    key = f"item:{item_id}"
+    if key in cache:
+        return cache[key]
+    try:
+        r = requests.get(f"{POKEAPI_BASE}/item/{item_id}", timeout=10)
+        r.raise_for_status()
+        it = r.json()
+
+        name = it.get("name", "")
+        for n in it.get("names", []):
+            if n["language"]["name"] == "en":
+                name = n["name"]
+                break
+
+        effect = ""
+        for e in it.get("effect_entries", []):
+            if e["language"]["name"] == "en":
+                effect = e.get("short_effect") or e.get("effect") or ""
+                break
+        # Fallback to flavour text if no effect entry
+        if not effect:
+            for ft in it.get("flavor_text_entries", []):
+                if ft["language"]["name"] == "en":
+                    effect = ft.get("text", "").replace("\n", " ").replace("\f", " ")
+                    break
+
+        data = {"name": name, "effect": effect}
+        cache[key] = data
+        save_cache(cache)
+        time.sleep(0.15)
+        return data
+    except Exception as e:
+        print(f"PokéAPI item error for id {item_id}: {e}")
+        return None
+
 def enrich_moves(move_ids: list, cache: dict) -> list:
     """Return list of move dicts for the four move slots (skipping 0s and invalid IDs)."""
     MAX_VALID_MOVE = 826
@@ -459,20 +594,23 @@ def parse_pk2(data: bytes) -> dict:
 
     if len(data) >= 70:
         # PARTY format
-        species    = data[0x01]
+        species_byte = data[0x01]
+        is_egg_g2 = (species_byte == 0xFD)  # 0xFD = Gen2 egg marker
+        species    = data[0x03] if is_egg_g2 else species_byte
         held_item  = data[0x02]
-        moves      = [data[0x03], data[0x04], data[0x05], data[0x06]]
+        moves      = [0,0,0,0] if is_egg_g2 else [data[0x03], data[0x04], data[0x05], data[0x06]]
         ot_id      = struct.unpack_from('>H', data, 0x07)[0]
         exp        = (data[0x09] << 16) | (data[0x0A] << 8) | data[0x0B]
         dv_word    = struct.unpack_from('>H', data, 0x18)[0]
         friendship = data[0x1C]
-        level      = data[0x1D]
+        level      = 1 if is_egg_g2 else data[0x1D]
         pp         = [data[0x1A] & 0x3F, data[0x1B] & 0x3F,
                       data[0x1C] & 0x3F, data[0x1D] & 0x3F]
         ot_name    = decode_gen12_string(data[0x33:0x3E]) if len(data) > 0x33 else ""
-        nickname   = decode_gen12_string(data[0x3E:0x49]) if len(data) > 0x3E else ""
+        nickname   = "Egg" if is_egg_g2 else decode_gen12_string(data[0x3E:0x49]) if len(data) > 0x3E else ""
     else:
-        # BOX format
+        # BOX format — no known egg format for Gen2 box, treat normally
+        is_egg_g2  = False
         species    = data[0x17]
         held_item  = data[0x18]
         moves      = [data[0x19], data[0x1A], data[0x1B], data[0x1C]]
@@ -508,7 +646,7 @@ def parse_pk2(data: bytes) -> dict:
         "level": level,
         "nature": None,
         "shiny": shiny,
-        "is_egg": False,
+        "is_egg": is_egg_g2,
         "experience": exp,
         "friendship": friendship,
         "moves": moves,
@@ -566,8 +704,12 @@ def parse_pk7(raw: bytes) -> dict:
     level      = raw[221]
 
     GEN7_GAMES = {
+        # Gen 7 games
         30: 'Sun', 31: 'Moon',
         32: 'Ultra Sun', 33: 'Ultra Moon',
+        # Gen 6 games — Pokémon transferred via Pokémon Bank retain their origin
+        24: 'X', 25: 'Y',
+        26: 'Alpha Sapphire', 27: 'Omega Ruby',
     }
     origin_game = GEN7_GAMES.get(raw[223], f'Unknown (0x{raw[223]:02X})')
     shiny       = ((ot_id ^ ot_sid ^ (pv >> 16) ^ (pv & 0xFFFF)) < 8)
@@ -1079,25 +1221,37 @@ def parse_pk5(raw: bytes) -> dict:
 # Directory scanner
 # ---------------------------------------------------------------------------
 
-def scan_directory(directory: str):
+def scan_directory(directory: str, recursive: bool = False):
     cache = load_cache()
     notes = load_notes()
     results = []
     errors = []
 
-    for fname in os.listdir(directory):
-        fpath = os.path.join(directory, fname)
+    VALID_EXTS = {'.pk1', '.pk2', '.pk3', '.pk4', '.pk5', '.pk6', '.pk7'}
 
-        # Explicitly skip subdirectories — top-level files only
-        if os.path.isdir(fpath):
-            continue
+    # Collect all files to scan — flat or recursive
+    all_files = []
+    if recursive:
+        for root, dirs, files in os.walk(directory):
+            # Skip hidden directories
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            for fname in files:
+                ext = os.path.splitext(fname)[1].lower()
+                if ext in VALID_EXTS:
+                    all_files.append((fname, os.path.join(root, fname)))
+    else:
+        for fname in os.listdir(directory):
+            fpath = os.path.join(directory, fname)
+            if os.path.isdir(fpath):
+                continue
+            ext = os.path.splitext(fname)[1].lower()
+            if ext in VALID_EXTS:
+                all_files.append((fname, fpath))
 
-        ext = os.path.splitext(fname)[1].lower()
-
-        if ext not in ('.pk1', '.pk2', '.pk3', '.pk4', '.pk5', '.pk6', '.pk7'):
-            continue
+    for fname, fpath in all_files:
 
         try:
+            ext = os.path.splitext(fname)[1].lower()
             with open(fpath, 'rb') as f:
                 raw = f.read()
 
@@ -1151,6 +1305,11 @@ def scan_directory(directory: str):
 
             # Enrich moves from PokéAPI (cached per move ID)
             poke["moves_data"] = enrich_moves(poke.get("moves", []), cache)
+
+            # Enrich held item — translate Gen2/3 IDs to PokéAPI slugs first
+            raw_item_id = poke.get("held_item_id", 0)
+            translated = translate_item_id(raw_item_id, poke.get("generation", 4))
+            poke["held_item"] = fetch_item_data(translated, cache) if translated else None
 
             # Enrich evolution chain (cached per species)
             poke["evo_chain"] = fetch_evo_chain(poke["species_id"], cache)
@@ -1225,13 +1384,14 @@ def set_last_dir():
 def api_scan():
     body = request.get_json(silent=True) or {}
     directory = body.get("dir", "").strip()
+    recursive = bool(body.get("recursive", False))
     if not directory:
         return jsonify({"error": "No directory provided"}), 400
     directory = directory.replace("/", os.sep)
     if not os.path.isdir(directory):
         return jsonify({"error": f"Directory not found: {directory}"}), 404
 
-    pokemon, errors = scan_directory(directory)
+    pokemon, errors = scan_directory(directory, recursive)
     return jsonify({"pokemon": pokemon, "errors": errors, "count": len(pokemon)})
 
 @app.route("/api/cache-info")
@@ -1277,59 +1437,76 @@ def get_note(filename):
 
 @app.route("/api/export-csv", methods=["POST"])
 def export_csv():
-    """Export full collection as CSV."""
-    import csv, io
+    """Export full collection as CSV, letting user choose save location via tkinter dialog."""
+    import csv
+    from datetime import date
     body = request.get_json(silent=True) or {}
-    directory = body.get("dir", "").strip().replace("/", os.sep)
-    if not directory or not os.path.isdir(directory):
-        return jsonify({"error": "Invalid directory"}), 400
+    pokemon = body.get("pokemon", [])
+    if not pokemon:
+        return jsonify({"error": "No pokemon data provided"}), 400
 
-    pokemon, _ = scan_directory(directory)
+    # Ask user where to save
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.wm_attributes('-topmost', True)
+        today = date.today().strftime("%Y-%m-%d")
+        out_path = filedialog.asksaveasfilename(
+            title="Save Pokédex export",
+            initialfile=f"{today}-pokedex_export.csv",
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+        root.destroy()
+    except Exception as e:
+        return jsonify({"error": f"Save dialog failed: {e}"}), 500
+
+    if not out_path:
+        return jsonify({"cancelled": True})
+
     notes = load_notes()
-
-    out = io.StringIO()
-    writer = csv.writer(out)
-    writer.writerow([
-        "Filename", "Species", "Dex#", "Nickname", "Generation",
-        "Level", "Nature", "Shiny", "OT", "OT_ID",
-        "Type1", "Type2",
-        "HP_Base", "Atk_Base", "Def_Base", "SpAtk_Base", "SpDef_Base", "Spd_Base",
-        "HP_IV", "Atk_IV", "Def_IV", "SpAtk_IV", "SpDef_IV", "Spd_IV",
-        "HP_EV", "Atk_EV", "Def_EV", "SpAtk_EV", "SpDef_EV", "Spd_EV",
-        "Move1", "Move2", "Move3", "Move4",
-        "Note", "Tags", "Favourite"
-    ])
-    for p in pokemon:
-        api = p.get("api") or {}
-        types = api.get("types", [])
-        base  = api.get("base_stats", {})
-        ivs   = p.get("ivs", {})
-        evs   = p.get("evs", {})
-        moves = [(m["name"] if m else "") for m in (p.get("moves_data") or [])]
-        while len(moves) < 4: moves.append("")
-        nd = notes.get(p["filename"], {})
+    with open(out_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
         writer.writerow([
-            p.get("filename",""), api.get("name", f'#{p["species_id"]}'), p.get("species_id",""),
-            p.get("nickname",""), p.get("generation",""),
-            p.get("level",""), p.get("nature",""), p.get("shiny",False),
-            p.get("ot_name",""), p.get("ot_id",""),
-            types[0] if len(types)>0 else "", types[1] if len(types)>1 else "",
-            base.get("hp",""), base.get("attack",""), base.get("defense",""),
-            base.get("special-attack",""), base.get("special-defense",""), base.get("speed",""),
-            ivs.get("hp",""), ivs.get("attack",""), ivs.get("defense",""),
-            ivs.get("sp_atk",""), ivs.get("sp_def",""), ivs.get("speed",""),
-            evs.get("hp",""), evs.get("attack",""), evs.get("defense",""),
-            evs.get("sp_atk",""), evs.get("sp_def",""), evs.get("speed",""),
-            moves[0], moves[1], moves[2], moves[3],
-            nd.get("note",""), "|".join(nd.get("tags",[])), nd.get("favourite", False)
+            "Filename", "Species", "Dex#", "Nickname", "Generation",
+            "Level", "Nature", "Shiny", "OT", "OT_ID",
+            "Type1", "Type2",
+            "HP_Base", "Atk_Base", "Def_Base", "SpAtk_Base", "SpDef_Base", "Spd_Base",
+            "HP_IV", "Atk_IV", "Def_IV", "SpAtk_IV", "SpDef_IV", "Spd_IV",
+            "HP_EV", "Atk_EV", "Def_EV", "SpAtk_EV", "SpDef_EV", "Spd_EV",
+            "Move1", "Move2", "Move3", "Move4",
+            "Held Item", "Note", "Tags", "Favourite"
         ])
+        for p in pokemon:
+            api   = p.get("api") or {}
+            types = api.get("types", [])
+            base  = api.get("base_stats", {})
+            ivs   = p.get("ivs", {})
+            evs   = p.get("evs", {})
+            moves = [(m["name"] if m else "") for m in (p.get("moves_data") or [])]
+            while len(moves) < 4: moves.append("")
+            held  = (p.get("held_item") or {}).get("name", "")
+            nd    = notes.get(p.get("filename", ""), {})
+            writer.writerow([
+                p.get("filename",""), api.get("name", f'#{p["species_id"]}'), p.get("species_id",""),
+                p.get("nickname",""), p.get("generation",""),
+                p.get("level",""), p.get("nature",""), p.get("shiny", False),
+                p.get("ot_name",""), p.get("ot_id",""),
+                types[0] if len(types)>0 else "", types[1] if len(types)>1 else "",
+                base.get("hp",""), base.get("attack",""), base.get("defense",""),
+                base.get("special-attack",""), base.get("special-defense",""), base.get("speed",""),
+                ivs.get("hp",""), ivs.get("attack",""), ivs.get("defense",""),
+                ivs.get("sp_atk",""), ivs.get("sp_def",""), ivs.get("speed",""),
+                evs.get("hp",""), evs.get("attack",""), evs.get("defense",""),
+                evs.get("sp_atk",""), evs.get("sp_def",""), evs.get("speed",""),
+                moves[0], moves[1], moves[2], moves[3],
+                held,
+                nd.get("note",""), "|".join(nd.get("tags",[])), nd.get("favourite", False)
+            ])
 
-    from flask import Response
-    return Response(
-        out.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=pokedex_export.csv"}
-    )
+    return jsonify({"ok": True, "path": out_path})
 
 if __name__ == "__main__":
     print("Pokédex running at http://localhost:5000")
