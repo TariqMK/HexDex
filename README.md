@@ -18,3 +18,9 @@ No copyrighted assets are distributed with this project._
 - Gen 7 (Sun, Moon, Ultra Sun, Ultra Moon)
 
 ---
+
+## Includes
+
+- Eggs
+- Party & Box Pokemon (some early Gens have different file structures for them)
+- Items (Gen 2 may have discrepancies due to the API, please report any issues)
