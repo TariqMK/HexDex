@@ -74,6 +74,29 @@ HexDex runs through the generous services that PokeAPI offers (thank you PokeAPI
 
 Of course, any new Pokémon added will need to have their information fetched once more.
 
-## Known Issues
+### Known Issues
 
 - Items for Gen 2 Pokémon may differ in the Detail Pane compared to what the Pokémon is actually holding, this is due to discrepancies with PokeAPI, please report any issues if you notice them. All other Generations of Pokémon work as expected
+
+---
+
+## Installation
+
+### 1. Clone the repo
+
+```
+git clone https://github.com/yourusername/hexdex.git
+cd hexdex
+```
+
+### 2. Create a virtual environment
+
+```
+python -m venv venv
+```
+
+### 3. Install dependencies (use full path to avoid venv conflicts)
+
+```
+venv\Scripts\python.exe -m pip install flask requests pywebview
+```
