@@ -47,26 +47,6 @@ _In addition, this project was coded with the help of AI by an Engineer who work
 
   <ellipse cx="60" cy="100" rx="180" ry="120" fill="#1a2a4a" opacity="0.5"/>
 
-  <g font-family="monospace" font-size="10" font-weight="700" text-anchor="middle">
-    <rect x="44" y="152" width="22" height="14" rx="3" fill="#b34a4a"/>
-    <text x="55" y="163" fill="#fff">G1</text>
-    <rect x="70" y="152" width="22" height="14" rx="3" fill="#4a7fb3"/>
-    <text x="81" y="163" fill="#fff">G2</text>
-    <rect x="96" y="152" width="22" height="14" rx="3" fill="#4a9e5c"/>
-    <text x="107" y="163" fill="#fff">G3</text>
-    <rect x="122" y="152" width="22" height="14" rx="3" fill="#7a5cb3"/>
-    <text x="133" y="163" fill="#fff">G4</text>
-    <rect x="148" y="152" width="22" height="14" rx="3" fill="#b3874a"/>
-    <text x="159" y="163" fill="#fff">G5</text>
-    <rect x="174" y="152" width="22" height="14" rx="3" fill="#b34a8a"/>
-    <text x="185" y="163" fill="#fff">G6</text>
-    <rect x="200" y="152" width="22" height="14" rx="3" fill="#4a9eb3"/>
-    <text x="211" y="163" fill="#fff">G7</text>
-  </g>
-
-  <text x="44" y="100" font-family="monospace" font-size="72" font-weight="700" fill="#e8304a" letter-spacing="-2">HEXDEX</text>
-
-  <text x="44" y="126" font-family="monospace" font-size="14" fill="#8899aa" letter-spacing="1">Personal Pokémon collection viewer for PKHeX users</text>
 </g>
 </svg>
 
