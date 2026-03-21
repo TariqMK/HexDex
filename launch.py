@@ -1,7 +1,7 @@
 """
-Pokédex — Desktop Window Launcher
+HexDex — Desktop Window Launcher
 ===================================
-Run this instead of app.py to open the Pokédex in its own desktop window
+Run this instead of app.py to open HexDex in its own desktop window
 rather than in a browser tab.
 
 Requirements:
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     # Open the pywebview window
     webview.create_window(
-        title="Pokédex",
+        title="HexDex",
         url=f"http://localhost:{PORT}",
         width=1280,
         height=820,
