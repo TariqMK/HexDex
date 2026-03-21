@@ -2,11 +2,13 @@ _Disclaimer:
 This is an unofficial fan project.
 Pokémon and related properties are owned by Nintendo / Game Freak / The Pokémon Company.
 No copyrighted assets are distributed with this project._
+
 ---
 # HexDex
 A personal Pokémon collection viewer for PKHeX users.
 
 HexDex scans a folder of PKHeX-exported .pk files and turns them into a beautiful, searchable desktop app — complete with HD artwork, full stats, move descriptions, evolution chains, held items, gender, and direct links to Serebii. Everything runs locally; after the first scan it works fully offline.
+
 ---
 ## Why HexDex?
 
