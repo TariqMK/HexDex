@@ -122,6 +122,7 @@ def fetch_pokemon_data(species_id, cache):
             "genus": genus,
             "base_experience": poke["base_experience"],
             "growth_rate": species.get("growth_rate", {}).get("name", "medium-fast"),
+            "gender_rate": species.get("gender_rate", -1),  # -1=genderless, 0=male only, 8=female only, else ratio
         }
 
         cache[key] = data
@@ -153,21 +154,32 @@ def fetch_move_data(move_id: int, cache: dict) -> dict | None:
                 name = n["name"]
                 break
 
-        # English flavour text (pick shortest / most recent)
+        # English effect (short preferred)
         effect = ""
-        for e in m.get("flavor_text_entries", []):
+        for e in m.get("effect_entries", []):
             if e["language"]["name"] == "en":
-                effect = e["flavor_text"].replace("\n", " ").replace("\f", " ")
+                effect = e.get("short_effect") or e.get("effect") or ""
+                # Replace $effect_chance placeholder if present
+                chance = m.get("effect_chance")
+                if chance and "$effect_chance" in effect:
+                    effect = effect.replace("$effect_chance", str(chance))
                 break
+        # Fallback to flavour text
+        if not effect:
+            for ft in m.get("flavor_text_entries", []):
+                if ft["language"]["name"] == "en":
+                    effect = ft["flavor_text"].replace("\n", " ").replace("\f", " ")
+                    break
 
         data = {
             "id":           move_id,
             "name":         name,
             "type":         m["type"]["name"],
-            "damage_class": m["damage_class"]["name"],   # physical / special / status
-            "power":        m.get("power"),               # None for status moves
+            "damage_class": m["damage_class"]["name"],
+            "power":        m.get("power"),
             "accuracy":     m.get("accuracy"),
             "pp":           m.get("pp"),
+            "effect":       effect,
         }
 
         cache[key] = data
@@ -306,7 +318,7 @@ def translate_item_id(item_id: int, generation: int):
     # Gen 4-7: IDs match PokéAPI directly
     return item_id
 
-def fetch_item_data(item_id, cache: dict) -> dict | None:
+
     """Fetch English name and description for a held item.
     item_id can be an int (Gen4+ direct PokéAPI ID) or a slug string (Gen2/3).
     Cached under item:{item_id}. Returns None for item_id 0 or None."""
@@ -357,6 +369,47 @@ def enrich_moves(move_ids: list, cache: dict) -> list:
         else:
             result.append(fetch_move_data(mid, cache))
     return result
+
+def fetch_item_data(item_id, cache: dict) -> dict | None:
+    """Fetch English name and description for a held item.
+    item_id can be an int (Gen4+ direct PokéAPI ID) or a slug string (Gen2/3).
+    Cached under item:{item_id}. Returns None for item_id 0 or None."""
+    if not item_id:
+        return None
+    key = f"item:{item_id}"
+    if key in cache:
+        return cache[key]
+    try:
+        r = requests.get(f"{POKEAPI_BASE}/item/{item_id}", timeout=10)
+        r.raise_for_status()
+        it = r.json()
+
+        name = it.get("name", "")
+        for n in it.get("names", []):
+            if n["language"]["name"] == "en":
+                name = n["name"]
+                break
+
+        effect = ""
+        for e in it.get("effect_entries", []):
+            if e["language"]["name"] == "en":
+                effect = e.get("short_effect") or e.get("effect") or ""
+                break
+        if not effect:
+            for ft in it.get("flavor_text_entries", []):
+                if ft["language"]["name"] == "en":
+                    effect = ft.get("text", "").replace("\n", " ").replace("\f", " ")
+                    break
+
+        data = {"name": name, "effect": effect}
+        cache[key] = data
+        save_cache(cache)
+        time.sleep(0.15)
+        return data
+    except Exception as e:
+        print(f"PokéAPI item error for id {item_id}: {e}")
+        return None
+
 
 def fetch_evo_chain(species_id: int, cache: dict) -> list:
     """Return evolution chain as ordered list of dicts: [{id, name, min_level, trigger}].
@@ -531,7 +584,9 @@ def parse_pk1(data: bytes) -> dict:
 
     return {
         "filename": "",
+        "pid": 0,
         "generation": 1,
+        "gender": None,  # enriched after PokéAPI fetch using ATK DV + gender_rate
         "origin_game": "Red / Blue / Yellow",
         "species_id": species,
         "nickname": nickname,
@@ -636,7 +691,9 @@ def parse_pk2(data: bytes) -> dict:
 
     return {
         "filename": "",
+        "pid": 0,
         "generation": 2,
+        "gender": None,  # enriched after PokéAPI fetch using ATK DV + gender_rate
         "origin_game": "Gold / Silver / Crystal",
         "species_id": species,
         "nickname": nickname,
@@ -716,7 +773,9 @@ def parse_pk7(raw: bytes) -> dict:
 
     return {
         "filename": "",
+        "pid": pv,
         "generation": 7,
+        "gender": {0:'male',1:'female',2:None}.get((raw[0x1D]>>1)&3, None),
         "origin_game": origin_game,
         "species_id": species,
         "nickname": nickname,
@@ -796,7 +855,9 @@ def parse_pk6(raw: bytes) -> dict:
 
     return {
         "filename": "",
+        "pid": pv,
         "generation": 6,
+        "gender": {0:'male',1:'female',2:None}.get((raw[0x1D]>>1)&3, None),
         "origin_game": origin_game,
         "species_id": species,
         "nickname": nickname,
@@ -922,7 +983,9 @@ def parse_pk3(data: bytes) -> dict:
 
     return {
         "filename": "",
+        "pid": pv,
         "generation": 3,
+        "gender": None,  # enriched after PokéAPI fetch using PID + gender_rate
         "origin_game": origin_game,
         "species_id": species,
         "nickname": nickname,
@@ -1051,10 +1114,8 @@ def parse_pk4(raw: bytes) -> dict:
     moves      = struct.unpack_from('<4H', raw, 40)
     pp         = struct.unpack_from('<4B', raw, 48)
 
-    nickname   = decode_gen5_string(raw[72:], 11)
-    ot_name    = decode_gen5_string(raw[104:], 7)
-
-    # EVs at bytes 30-35 (confirmed from Porygon/Platinum, Chatot/Diamond, Palkia/Pearl)
+    nickname   = decode_gen4_string(raw[72:], 11)
+    ot_name    = decode_gen4_string(raw[104:], 7)
     ev_hp  = raw[30]; ev_atk = raw[31]; ev_def = raw[32]
     ev_spd = raw[33]; ev_spa = raw[34]; ev_spd2= raw[35]
 
@@ -1088,7 +1149,9 @@ def parse_pk4(raw: bytes) -> dict:
 
     return {
         "filename": "",
+        "pid": pv,
         "generation": 4,
+        "gender": {0:'male',1:'female',2:None}.get((raw[0x1D]>>1)&3, None),
         "origin_game": origin_game,
         "species_id": species,
         "nickname": nickname,
@@ -1189,7 +1252,9 @@ def parse_pk5(raw: bytes) -> dict:
 
     return {
         "filename": "",
+        "pid": pv,
         "generation": 5,
+        "gender": {0:'male',1:'female',2:None}.get((raw[0x1D]>>1)&3, None),
         "origin_game": origin_game,
         "species_id": species,
         "nickname": nickname,
@@ -1310,6 +1375,29 @@ def scan_directory(directory: str, recursive: bool = False):
             raw_item_id = poke.get("held_item_id", 0)
             translated = translate_item_id(raw_item_id, poke.get("generation", 4))
             poke["held_item"] = fetch_item_data(translated, cache) if translated else None
+
+            # Gender is already parsed from the file in each parser (Gen 3+)
+            # Gen 1/2 derive from ATK DV vs species gender ratio (already in parser)
+
+            # Enrich Gen 1/2/3 gender using PokéAPI gender_rate
+            if poke.get("gender") is None and api_data:
+                gender_rate = api_data.get("gender_rate", -1)
+                if gender_rate == -1:
+                    poke["gender"] = None          # genderless
+                elif gender_rate == 0:
+                    poke["gender"] = "male"
+                elif gender_rate == 8:
+                    poke["gender"] = "female"
+                elif poke.get("generation", 0) <= 2:
+                    # Gen 1/2: gender from ATK DV
+                    atk_dv = poke.get("ivs", {}).get("attack", 0)
+                    thresholds = {1: 0, 2: 3, 4: 7, 6: 11}
+                    threshold = thresholds.get(gender_rate, 7)
+                    poke["gender"] = "female" if atk_dv <= threshold else "male"
+                else:
+                    # Gen 3: gender from PID
+                    threshold = gender_rate * 32 - 1
+                    poke["gender"] = "female" if (poke.get("pid", 0) & 0xFF) < threshold else "male"
 
             # Enrich evolution chain (cached per species)
             poke["evo_chain"] = fetch_evo_chain(poke["species_id"], cache)
