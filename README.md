@@ -20,7 +20,7 @@ Everything runs locally; after the first scan it works fully offline.
 
 ## Features
 
-#### Supported Gens
+### Supported Gens
 
 The following generations of Pokémon are fully supported by HexDex (including eggs and shinies).
 
@@ -44,15 +44,15 @@ Pokémon visible in HexDex show a wide range of useful data such as their:
 
 and more.
 
-#### Favourites, Notes & Tags
+### Favourites, Notes & Tags
 
 Easily add notes and tags to your Pokémon for cataloguing and categorisation, these are stored locally. For Pokémon especially dear to you, mark them as favourites for easy access later.
 
-#### Move and Ability Metadata
+### Move and Ability Metadata
 
 Pokémon natures, abilities and moves have their details available to view. The data is also cached locally after first pull.
 
-#### Filters
+### Filters
 
 In addition to your tags, easily filter your collection of Pokémon by type, generation, favourite status, shiny status, legendary status or even by egg!
 
