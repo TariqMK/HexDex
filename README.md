@@ -94,14 +94,20 @@ If you instead prefer to run from the source, simply:
 git clone https://github.com/yourusername/hexdex.git
 cd hexdex
 ```
+
 Alternatively, download the files from this Repo.
 
 ### 2. Install Dependencies
+
+Install the following:
+
 ```
 python.exe -m pip install flask requests pywebview
 ```
 
 ### 3. Run
+
+Launch the application:
 
 ```
 python.exe launch.py
@@ -113,10 +119,10 @@ python.exe launch.py
 
 HexDex is a local Flask web app rendered inside a pywebview desktop window. 
 
-The backend (app.py) parses the binary .pk file formats directly (reading confirmed byte offsets for each generation) and enriches the data with species, move, and ability information from PokéAPI. 
+The backend (`app.py`) parses the binary .pk file formats directly (reading confirmed byte offsets for each generation) and enriches the data with species, move, and ability information from PokéAPI. 
 
 Everything is cached locally in `cache/pokeapi_cache.json` and `cache/images/`. The frontend (`templates/index.html`) is a single-file HTML/CSS/JS app with no external framework dependencies.
 
-Your personal data (notes, tags, favourites) lives in cache/notes.json — back this file up, it's the only thing that can't be rebuilt from scratch.
+Your personal data (notes, tags, favourites) lives in `cache/notes.json`. Back this file up, it's the only thing that can't be rebuilt from scratch.
 
 Remember, HexDex is a read-only viewer. It never modifies, writes to, or validates your .pk files. That being said, always remember to have a backup of your files as part of good practise.
