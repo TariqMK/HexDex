@@ -10,7 +10,7 @@ A personal Pokémon collection frontend for PKHeX users. View your Pokémon in a
 
 HexDex scans a folder of PKHeX-exported `.pk` files and turns them into a beautiful, searchable desktop app complete with HD artwork, full stats, move descriptions, evolution chains, held items, gender, and direct links to Serebii.
 
-[Screenshot]
+[SCREENSHOT]
 
 HexDex gives you a proper way to browse, organise, and reflect on what you've caught across every generation. Think Pokémon Home but free, selfhosted, open-source and youre forever.
 
@@ -34,6 +34,8 @@ The following generations of Pokémon are fully supported by HexDex (including e
 
 Pokémon visible in HexDex show a wide range of useful data such as their:
 
+[SCREENSHOT]
+
 - Nature
 - Original Trainer Name & ID
 - Gender
@@ -43,6 +45,8 @@ Pokémon visible in HexDex show a wide range of useful data such as their:
 - Held Items
 
 and more.
+
+_Note: HexDex also supports having multiple versions of the same Pokémon (within the same generation), useful if you export the same Pokémon multiple times at different levels. Also note however, that the same Pokémon exported from different generations will show separately in the main grid view._
 
 ### Favourites, Notes & Tags
 
@@ -56,15 +60,20 @@ Pokémon natures, abilities and moves have their details available to view. The 
 
 In addition to your tags, easily filter your collection of Pokémon by type, generation, favourite status, shiny status, legendary status or even by egg!
 
+### Export Option
+
+If you wish to preserve the details of your collection in other formats, simply export to CSV to have all the details from the application in one simple file. 
+
 ## Known Issues
+
+- Items (Gen 2 may have discrepancies due to the API, please report any issues)
 
 Includes:
 
 
 
-- Items (Gen 2 may have discrepancies due to the API, please report any issues)
+
 - Cached to avoid duplicate API calls, once fully loaded for all pokemon, works fully offline
 - Thank you to PokeAPI
 - Made with aI
-- CSV export
 - - Multiple pokemon supported
