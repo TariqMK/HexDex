@@ -106,6 +106,8 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .panel-types{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:center}
 .type-badge{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.7rem;letter-spacing:.5px;text-transform:uppercase;padding:3px 10px;border-radius:4px;color:#fff}
 .panel-genus{font-size:.75rem;color:var(--text-dim);font-style:italic;margin-top:4px}
+.serebii-link{display:inline-block;margin-top:7px;font-size:.68rem;font-family:'Share Tech Mono',monospace;color:#5bbfb5;opacity:.75;text-decoration:none;letter-spacing:.5px;transition:opacity .15s}
+.serebii-link:hover{opacity:1;text-decoration:underline}
 
 .panel-scroll{flex:1;overflow-y:auto;padding:16px 18px 28px}
 .panel-scroll::-webkit-scrollbar{width:4px}
@@ -216,6 +218,11 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .tag-chip-remove:hover{color:var(--accent)}
 .tag-input{background:none;border:none;outline:none;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.78rem;min-width:80px;flex:1}
 .tag-input::placeholder{color:var(--text-mute)}
+.tag-autocomplete{position:absolute;left:0;right:0;top:calc(100% + 3px);background:var(--surface2);border:1px solid var(--border);border-radius:6px;z-index:200;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.4);display:none}
+.tag-autocomplete.open{display:block}
+.tag-ac-item{padding:5px 10px;font-size:.78rem;font-family:'Exo 2',sans-serif;cursor:pointer;color:var(--text-dim);transition:background .1s}
+.tag-ac-item:hover,.tag-ac-item.ac-active{background:var(--surface3);color:var(--text)}
+.tags-input-wrap{position:relative}
 .save-note-btn{margin-top:8px;width:100%;padding:6px;background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.8rem;letter-spacing:1px;cursor:pointer;transition:all .15s}
 .save-note-btn:hover{border-color:var(--green);color:var(--green)}
 .save-note-btn.saved{border-color:var(--green);color:var(--green)}
@@ -731,7 +738,11 @@ function renderPanel(group){
       <div class="section"><div class="section-title">Tags</div>
         <div class="tags-input-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
           ${tagsHtml}
-          <input class="tag-input" id="tagInput" placeholder="Add tag…" onkeydown="handleTagInput(event)">
+          <input class="tag-input" id="tagInput" placeholder="Add tag…"
+            onkeydown="handleTagInput(event)"
+            oninput="handleTagInputChange(event)"
+            onblur="handleTagInputBlur()">
+          <div class="tag-autocomplete" id="tagAcDropdown"></div>
         </div>
       </div>
       <button class="save-note-btn" onclick="saveNote()">SAVE</button>
@@ -740,6 +751,11 @@ function renderPanel(group){
   }
 
   // HERO
+  const SEREBII_PATHS = {1:'pokedex',2:'pokedex-gs',3:'pokedex-rs',4:'pokedex-dp',5:'pokedex-bw',6:'pokedex-xy',7:'pokedex-sm'};
+  const serebiiPath = SEREBII_PATHS[p.generation] || 'pokedex';
+  const serebiiDex  = String(p.species_id).padStart(3,'0');
+  const serebiiUrl  = `https://www.serebii.net/${serebiiPath}/${serebiiDex}.shtml`;
+
   document.getElementById('panelHero').innerHTML=`
     <button class="panel-fav-btn${p.favourite?' fav-active':''}"
       title="${p.favourite?'Remove from favourites':'Add to favourites'}"
@@ -752,6 +768,7 @@ function renderPanel(group){
     <div class="panel-dex">Pokédex ${dexNo} · Gen ${p.generation} · ${p.origin_game||'Unknown'}</div>
     <div class="panel-types">${(api.types||[]).map(typeBadge).join('')}</div>
     ${api.genus?`<div class="panel-genus">${api.genus}</div>`:''}
+    <a class="serebii-link" href="${serebiiUrl}" target="_blank" rel="noopener">more info ↗</a>
   `;
 
   const hM=api.height?(api.height/10).toFixed(1)+' m':'—';
@@ -840,8 +857,9 @@ function renderPanel(group){
       if(!m)return'';
       const ppCur=pp[idx]??m.pp??'—';
       const dcIcon=m.damage_class==='physical'?'⚔️':m.damage_class==='special'?'✨':'🔵';
-      return`<div class="move-card">
-        <div class="move-name">${m.name}</div>
+      const tooltip=m.effect?`<span class="tooltip">${m.effect}</span>`:'';
+      return`<div class="move-card has-tooltip">
+        <div class="move-name">${m.name}${tooltip}</div>
         <div class="move-meta">${typeBadge(m.type)}<span style="font-size:.6rem;color:var(--text-mute);font-family:'Share Tech Mono',monospace">${dcIcon} ${m.power!=null?'PWR '+m.power:'Status'}</span></div>
         <div class="move-pp">${m.accuracy!=null?'ACC '+m.accuracy:'—'} · PP ${ppCur}/${m.pp??'—'}</div>
       </div>`;
@@ -874,6 +892,7 @@ function renderPanel(group){
       <div class="meta-cell"><div class="meta-cell-label">OT ID</div><div class="meta-cell-value">${p.ot_id||'—'}</div></div>
       <div class="meta-cell"><div class="meta-cell-label">Height</div><div class="meta-cell-value">${hM}</div></div>
       <div class="meta-cell"><div class="meta-cell-label">Weight</div><div class="meta-cell-value">${wKg}</div></div>
+      ${p.gender!=null?`<div class="meta-cell"><div class="meta-cell-label">Gender</div><div class="meta-cell-value" style="color:${p.gender==='female'?'#f97fb0':'#7fb4f9'}">${p.gender==='female'?'♀ Female':'♂ Male'}</div></div>`:''}
       ${p.held_item ? `<div class="meta-cell has-tooltip"><div class="meta-cell-label">Held Item</div><div class="meta-cell-value">${p.held_item.name}${p.held_item.effect?`<span class="tooltip">${p.held_item.effect}</span>`:''}</div></div>` : ''}
     </div>
     <div class="section"><div class="section-title">Evolution</div>${evoHtml}</div>
@@ -889,7 +908,10 @@ function renderPanel(group){
       <div class="tags-input-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
         ${tagsHtml}
         <input class="tag-input" id="tagInput" placeholder="Add tag, press Enter…"
-          onkeydown="handleTagInput(event)">
+          onkeydown="handleTagInput(event)"
+          oninput="handleTagInputChange(event)"
+          onblur="handleTagInputBlur()">
+        <div class="tag-autocomplete" id="tagAcDropdown"></div>
       </div>
       <button class="save-note-btn" id="saveNoteBtn" onclick="saveNote()">SAVE NOTE & TAGS</button>
     </div>
@@ -907,25 +929,109 @@ function getCurrentVariant(){
   return g.members[g.activeVariant];
 }
 
-function handleTagInput(e){
-  // Enter or comma commits the current tag; also support pasting comma-separated list
-  if(e.key!=='Enter'&&e.key!==',')return;
-  e.preventDefault();
-  const raw=e.target.value.trim();
-  if(!raw)return;
+function getAllTags(){
+  // Collect every unique tag across entire collection
+  const set=new Set();
+  allPokemon.forEach(p=>(p.tags||[]).forEach(t=>set.add(t)));
+  return [...set].sort();
+}
+
+let acIndex=-1; // currently highlighted autocomplete item
+
+function getAcDropdown(){return document.getElementById('tagAcDropdown');}
+
+function showAutocomplete(val){
+  const drop=getAcDropdown();
+  if(!drop)return;
+  const p=getCurrentVariant();
+  const existing=new Set(p?.tags||[]);
+  const q=val.toLowerCase().trim();
+  const matches=getAllTags().filter(t=>!existing.has(t)&&t.toLowerCase().includes(q));
+  if(!q||!matches.length){drop.classList.remove('open');acIndex=-1;return;}
+  drop.innerHTML=matches.map((t,i)=>
+    `<div class="tag-ac-item" data-tag="${t}" onclick="selectAcTag('${t.replace(/'/g,"\\'")}')">
+      ${t.replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),m=>`<b>${m}</b>`)}
+    </div>`
+  ).join('');
+  acIndex=-1;
+  drop.classList.add('open');
+}
+
+function hideAutocomplete(){
+  const drop=getAcDropdown();
+  if(drop){drop.classList.remove('open');acIndex=-1;}
+}
+
+function selectAcTag(tag){
   const p=getCurrentVariant();
   if(!p)return;
   if(!p.tags)p.tags=[];
-  // Support comma-separated input e.g. "competitive,favourite,shiny hunt"
+  if(!p.tags.includes(tag))p.tags.push(tag);
+  refreshTagsUI(p);
+  hideAutocomplete();
+}
+
+function commitTag(raw){
+  const p=getCurrentVariant();
+  if(!p)return;
+  if(!p.tags)p.tags=[];
   raw.split(',').map(t=>t.trim()).filter(Boolean).forEach(t=>{
     if(!p.tags.includes(t))p.tags.push(t);
   });
   refreshTagsUI(p);
-  e.target.value='';
+  hideAutocomplete();
+}
+
+function handleTagInputChange(e){
+  showAutocomplete(e.target.value);
+}
+
+function handleTagInputBlur(){
+  // Small delay so onclick on dropdown items fires first
+  setTimeout(hideAutocomplete,150);
+}
+
+function handleTagInput(e){
+  const drop=getAcDropdown();
+  const items=drop?[...drop.querySelectorAll('.tag-ac-item')]:[];
+
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    acIndex=Math.min(acIndex+1,items.length-1);
+    items.forEach((el,i)=>el.classList.toggle('ac-active',i===acIndex));
+    return;
+  }
+  if(e.key==='ArrowUp'){
+    e.preventDefault();
+    acIndex=Math.max(acIndex-1,0);
+    items.forEach((el,i)=>el.classList.toggle('ac-active',i===acIndex));
+    return;
+  }
+  if(e.key==='Escape'){
+    hideAutocomplete();
+    return;
+  }
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    if(acIndex>=0&&items[acIndex]){
+      selectAcTag(items[acIndex].dataset.tag);
+      e.target.value='';
+      return;
+    }
+    if(items.length===1){
+      selectAcTag(items[0].dataset.tag);
+      e.target.value='';
+      return;
+    }
+    const raw=e.target.value.trim();
+    if(!raw)return;
+    commitTag(raw);
+    e.target.value='';
+    return;
+  }
 }
 
 function flushPendingTag(){
-  // Called before saving — commits anything typed but not yet Enter'd
   const input=document.getElementById('tagInput');
   if(!input||!input.value.trim())return;
   const p=getCurrentVariant();
@@ -950,7 +1056,12 @@ function refreshTagsUI(p){
   if(!wrap)return;
   wrap.innerHTML=(p.tags||[]).map((t,i)=>
     `<div class="tag-chip">${t}<span class="tag-chip-remove" onclick="removeTag(${i})">✕</span></div>`
-  ).join('')+`<input class="tag-input" id="tagInput" placeholder="Add tag, press Enter or comma…" onkeydown="handleTagInput(event)">`;
+  ).join('')+
+  `<input class="tag-input" id="tagInput" placeholder="Add tag…"
+    onkeydown="handleTagInput(event)"
+    oninput="handleTagInputChange(event)"
+    onblur="handleTagInputBlur()">
+  <div class="tag-autocomplete" id="tagAcDropdown"></div>`;
   // Update grid card dot
   if(activeCardIndex!==null){
     const group=groupedCards[activeCardIndex];
