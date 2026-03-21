@@ -12,7 +12,7 @@ _In addition, this project was coded with the help of AI by an Engineer who work
 
 A personal Pokémon collection frontend for PKHeX users. View your Pokémon in a clean, easy interface.
 
-HexDex scans a folder of PKHeX-exported `.pk` files and turns them into a beautiful, searchable desktop app complete with HD artwork, full stats, move descriptions, evolution chains, held items, gender, and direct links to Serebii.
+HexDex is a portable application which scans a folder of PKHeX-exported `.pk` files and turns them into a beautiful, searchable desktop app complete with HD artwork, full stats, move descriptions, evolution chains, held items, gender, and direct links to Serebii.
 
 [SCREENSHOT]
 
