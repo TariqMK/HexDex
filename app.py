@@ -1,14 +1,26 @@
 import os
+import sys
 import json
 import struct
 import time
 import requests
 from flask import Flask, jsonify, request, render_template
 
-app = Flask(__name__)
+# ---------------------------------------------------------------------------
+# Path setup — works both when run normally and when frozen by PyInstaller
+# ---------------------------------------------------------------------------
+if getattr(sys, 'frozen', False):
+    # Running as a PyInstaller exe — put cache next to the exe
+    BASE_DIR = os.path.dirname(sys.executable)
+    template_folder = os.path.join(sys._MEIPASS, 'templates')
+    app = Flask(__name__, template_folder=template_folder)
+else:
+    # Running normally via python app.py or python launch.py
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    app = Flask(__name__)
 
 POKEAPI_BASE  = "https://pokeapi.co/api/v2"
-CACHE_DIR     = "cache"
+CACHE_DIR     = os.path.join(BASE_DIR, "cache")
 CACHE_FILE    = os.path.join(CACHE_DIR, "pokeapi_cache.json")
 IMAGE_DIR     = os.path.join(CACHE_DIR, "images")
 NOTES_FILE    = os.path.join(CACHE_DIR, "notes.json")
@@ -1542,7 +1554,7 @@ def export_csv():
         root.wm_attributes('-topmost', True)
         today = date.today().strftime("%Y-%m-%d")
         out_path = filedialog.asksaveasfilename(
-            title="Save Pokédex export",
+            title="Save HexDex export",
             initialfile=f"{today}-pokedex_export.csv",
             defaultextension=".csv",
             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
@@ -1597,5 +1609,5 @@ def export_csv():
     return jsonify({"ok": True, "path": out_path})
 
 if __name__ == "__main__":
-    print("Pokédex running at http://localhost:5000")
+    print("HexDex running at http://localhost:5000")
     app.run(debug=True, port=5000)
