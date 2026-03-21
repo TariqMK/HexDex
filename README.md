@@ -56,7 +56,7 @@ A personal Pokémon collection frontend for PKHeX users. View your Pokémon in a
 
 HexDex is a portable application which scans a folder of PKHeX-exported `.pk` files and turns them into a beautiful, searchable desktop app complete with HD artwork, full stats, move descriptions, evolution chains, held items, gender, and direct links to Serebii.
 
-<img width="2331" height="1915" alt="image" src="https://github.com/user-attachments/assets/7bcaf786-2e98-4a59-b9a8-f91c4c9417d8" />
+<img width="2331" height="1080" alt="image" src="https://github.com/user-attachments/assets/3cdf428d-17f2-4de8-a14b-b1f923ef4a12" />
 
 HexDex gives you a proper way to browse, organise, and reflect on what you've caught across every generation. Think Pokémon Home but free, selfhosted, open-source and youre forever.
 
