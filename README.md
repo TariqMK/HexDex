@@ -82,7 +82,7 @@ Of course, any new Pokémon added will need to have their information fetched on
 
 ## Install & Run (Direct)
 
-Download the latest version from the `Releases` section, extract the `.zip` and run Hexdex. All required folders will be automatically created.
+Download the latest version from the `Releases` section, extract the `.zip` and run Hexdex. All required folders will be automatically created. Enjoy!
 
 ## Install & Run (From Source)
 
@@ -101,9 +101,22 @@ Alternatively, download the files from this Repo.
 python.exe -m pip install flask requests pywebview
 ```
 
-### 4. Run
+### 3. Run
 
 ```
 python.exe launch.py
 ```
 
+---
+
+## How it Works
+
+HexDex is a local Flask web app rendered inside a pywebview desktop window. 
+
+The backend (app.py) parses the binary .pk file formats directly (reading confirmed byte offsets for each generation) and enriches the data with species, move, and ability information from PokéAPI. 
+
+Everything is cached locally in `cache/pokeapi_cache.json` and `cache/images/`. The frontend (`templates/index.html`) is a single-file HTML/CSS/JS app with no external framework dependencies.
+
+Your personal data (notes, tags, favourites) lives in cache/notes.json — back this file up, it's the only thing that can't be rebuilt from scratch.
+
+Remember, HexDex is a read-only viewer. It never modifies, writes to, or validates your .pk files. That being said, always remember to have a backup of your files as part of good practise.
