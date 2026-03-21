@@ -80,23 +80,30 @@ Of course, any new Pokémon added will need to have their information fetched on
 
 ---
 
-## Installation
+## Install & Run (Direct)
 
-### 1. Clone the repo
+Download the latest version from the `Releases` section, extract the `.zip` and run Hexdex. All required folders will be automatically created.
+
+## Install & Run (From Source)
+
+If you instead prefer to run from the source, simply:
+
+### 1. Clone Repo
 
 ```
 git clone https://github.com/yourusername/hexdex.git
 cd hexdex
 ```
+Alternatively, download the files from this Repo.
 
-### 2. Create a virtual environment
+### 2. Install Dependencies
+```
+python.exe -m pip install flask requests pywebview
+```
+
+### 4. Run
 
 ```
-python -m venv venv
+python.exe launch.py
 ```
 
-### 3. Install dependencies (use full path to avoid venv conflicts)
-
-```
-venv\Scripts\python.exe -m pip install flask requests pywebview
-```
