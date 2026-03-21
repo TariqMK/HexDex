@@ -7,6 +7,68 @@ No copyrighted assets are distributed with this project._
 _In addition, this project was coded with the help of AI by an Engineer who works in IT but is not a Software Developer. The application works perfectly as tested and all files are open-sourced within this repository. While AI can make mistakes, the author believes that it has helped to create a functioning program that has harmless, read-only access to your files and is intended to provide an enjoyable playing experience of the official mainline games (please support the official releases!). Any provided binaries have been compiled directly from the source._ 
 
 ---
+![banner](https://github.com/user-attachments/assets/00ef647d-0743-4795-bc78-004c1f274a7f)<svg width="100%" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <clipPath id="clip">
+    <rect width="680" height="200" rx="12"/>
+  </clipPath>
+</defs>
+
+<g clip-path="url(#clip)">
+  <rect width="680" height="200" fill="#0e1117"/>
+
+  <g opacity="0.07" stroke="#a0c4ff" stroke-width="0.8" fill="none">
+    <polygon points="490,10 510,10 520,27 510,44 490,44 480,27"/>
+    <polygon points="528,10 548,10 558,27 548,44 528,44 518,27"/>
+    <polygon points="566,10 586,10 596,27 586,44 566,44 556,27"/>
+    <polygon points="604,10 624,10 634,27 624,44 604,44 594,27"/>
+    <polygon points="642,10 662,10 672,27 662,44 642,44 632,27"/>
+    <polygon points="509,44 529,44 539,61 529,78 509,78 499,61"/>
+    <polygon points="547,44 567,44 577,61 567,78 547,78 537,61"/>
+    <polygon points="585,44 605,44 615,61 605,78 585,78 575,61"/>
+    <polygon points="623,44 643,44 653,61 643,78 623,78 613,61"/>
+    <polygon points="661,44 681,44 691,61 681,78 661,78 651,61"/>
+    <polygon points="490,78 510,78 520,95 510,112 490,112 480,95"/>
+    <polygon points="528,78 548,78 558,95 548,112 528,112 518,95"/>
+    <polygon points="566,78 586,78 596,95 586,112 566,112 556,95"/>
+    <polygon points="604,78 624,78 634,95 624,112 604,112 594,95"/>
+    <polygon points="642,78 662,78 672,95 662,112 642,112 632,95"/>
+    <polygon points="509,112 529,112 539,129 529,146 509,146 499,129"/>
+    <polygon points="547,112 567,112 577,129 567,146 547,146 537,129"/>
+    <polygon points="585,112 605,112 615,129 605,146 585,146 575,129"/>
+    <polygon points="623,112 643,112 653,129 643,146 623,146 613,129"/>
+    <polygon points="661,112 681,112 691,129 681,146 661,146 651,129"/>
+    <polygon points="490,146 510,146 520,163 510,180 490,180 480,163"/>
+    <polygon points="528,146 548,146 558,163 548,180 528,180 518,163"/>
+    <polygon points="566,146 586,146 596,163 586,180 566,180 556,163"/>
+    <polygon points="604,146 624,146 634,163 624,180 604,180 594,163"/>
+    <polygon points="642,146 662,146 672,163 662,180 642,180 632,163"/>
+  </g>
+
+  <ellipse cx="60" cy="100" rx="180" ry="120" fill="#1a2a4a" opacity="0.5"/>
+
+  <g font-family="monospace" font-size="10" font-weight="700" text-anchor="middle">
+    <rect x="44" y="152" width="22" height="14" rx="3" fill="#b34a4a"/>
+    <text x="55" y="163" fill="#fff">G1</text>
+    <rect x="70" y="152" width="22" height="14" rx="3" fill="#4a7fb3"/>
+    <text x="81" y="163" fill="#fff">G2</text>
+    <rect x="96" y="152" width="22" height="14" rx="3" fill="#4a9e5c"/>
+    <text x="107" y="163" fill="#fff">G3</text>
+    <rect x="122" y="152" width="22" height="14" rx="3" fill="#7a5cb3"/>
+    <text x="133" y="163" fill="#fff">G4</text>
+    <rect x="148" y="152" width="22" height="14" rx="3" fill="#b3874a"/>
+    <text x="159" y="163" fill="#fff">G5</text>
+    <rect x="174" y="152" width="22" height="14" rx="3" fill="#b34a8a"/>
+    <text x="185" y="163" fill="#fff">G6</text>
+    <rect x="200" y="152" width="22" height="14" rx="3" fill="#4a9eb3"/>
+    <text x="211" y="163" fill="#fff">G7</text>
+  </g>
+
+  <text x="44" y="100" font-family="monospace" font-size="72" font-weight="700" fill="#e8304a" letter-spacing="-2">HEXDEX</text>
+
+  <text x="44" y="126" font-family="monospace" font-size="14" fill="#8899aa" letter-spacing="1">Personal Pokémon collection viewer for PKHeX users</text>
+</g>
+</svg>
 
 # HexDex
 
