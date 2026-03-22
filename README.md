@@ -146,7 +146,7 @@ Alternatively, download the files from this Repo.
 Install the following:
 
 ```
-python.exe -m pip install flask requests pywebview
+python.exe -m pip install flask requests pywebview[qt]
 ```
 
 ### 3. Run
