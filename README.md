@@ -4,7 +4,9 @@ _This is an unofficial fan project.
 Pokémon and related properties are owned by Nintendo / Game Freak / The Pokémon Company.
 No copyrighted assets are distributed with this project._
 
-_In addition, this project was coded with the help of AI by an Engineer who works in IT but is not a Software Developer. The application works perfectly as tested and all files are open-sourced within this repository. While AI can make mistakes, the author believes that it has helped to create a functioning program that has harmless, read-only access to your files and is intended to provide an enjoyable playing experience of the official mainline games (please support the official releases!). Any provided binaries have been compiled directly from the source._ 
+_This project was coded with the help of AI by an Engineer who works in IT but is not a Software Developer. The application works perfectly as tested._
+
+_While AI can make mistakes, the author believes that it has helped to create a functioning program that has harmless, read-only access to your files and is intended to provide an enjoyable playing experience of the official mainline games (please support the official releases!). Any provided binaries have been compiled directly from the source._ 
 
 ---
 ![banner](https://github.com/user-attachments/assets/00ef647d-0743-4795-bc78-004c1f274a7f)<svg width="100%" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg">
