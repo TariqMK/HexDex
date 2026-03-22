@@ -126,7 +126,7 @@ Of course, any new Pokémon added will need to have their information fetched on
 
 ## Install & Run (Direct)
 
-Download the latest version from the `Releases` section, extract the `.zip` and run Hexdex. All required folders will be automatically created. Enjoy!
+Download the latest version from the [`Releases` section](https://github.com/TariqMK/HexDex/releases), extract the `.zip` and run Hexdex. All required folders will be automatically created. Enjoy!
 
 ## Install & Run (From Source)
 
