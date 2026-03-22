@@ -173,12 +173,11 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 
 /* Tooltip — shared by abilities and nature */
 .has-tooltip{position:relative;cursor:default}
-.has-tooltip .tooltip{
+.has-tooltip .tooltip{display:none}
+/* Tooltip now rendered via JS into body to avoid overflow clipping */
+#hexdex-tooltip{
   display:none;
-  position:absolute;
-  bottom:calc(100% + 6px);
-  left:0;
-  transform:none;
+  position:fixed;
   background:var(--surface3);
   border:1px solid var(--border);
   border-radius:7px;
@@ -191,21 +190,10 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
   white-space:normal;
   width:220px;
   text-align:left;
-  text-transform:none;
-  letter-spacing:0;
-  z-index:999;
+  z-index:9999;
   box-shadow:0 4px 16px rgba(0,0,0,.4);
   pointer-events:none;
 }
-.has-tooltip .tooltip::after{
-  content:'';
-  position:absolute;
-  top:100%;left:16px;
-  transform:none;
-  border:5px solid transparent;
-  border-top-color:var(--border);
-}
-.has-tooltip:hover .tooltip{display:block}
 
 /* Notes & Tags */
 .notes-area{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;resize:vertical;min-height:64px;outline:none;transition:border-color .2s;line-height:1.5}
@@ -282,6 +270,8 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 </style>
 </head>
 <body>
+
+<div id="hexdex-tooltip"></div>
 
 <header>
   <div class="logo">HEXDEX<span>.</span></div>
@@ -388,6 +378,35 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 <script>
 // ── State ─────────────────────────────────────────────────────────
 let allPokemon = [], filteredPokemon = [], groupedCards = [];
+
+// ── Global tooltip engine ─────────────────────────────────────────
+// Appends to body so it never gets clipped by overflow:hidden/auto ancestors
+const _tt = document.getElementById('hexdex-tooltip');
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest('.has-tooltip');
+  if(!el) return;
+  const span = el.querySelector('.tooltip');
+  if(!span) return;
+  _tt.textContent = span.textContent;
+  _tt.style.display = 'block';
+  // Position once on entry — anchored above the hovered element
+  const rect = el.getBoundingClientRect();
+  const w = 220;
+  let x = rect.left;
+  let y = rect.top - _tt.offsetHeight - 8;
+  if(x + w > window.innerWidth - 8) x = window.innerWidth - w - 8;
+  if(x < 8) x = 8;
+  if(y < 8) y = rect.bottom + 8;
+  _tt.style.left = x + 'px';
+  _tt.style.top  = y + 'px';
+});
+document.addEventListener('mouseout', e => {
+  const from = e.target.closest('.has-tooltip');
+  if(!from) return;
+  const to = e.relatedTarget;
+  if(to && from.contains(to)) return;
+  _tt.style.display = 'none';
+});
 let activeCardIndex = null;
 let currentDir = '';
 
