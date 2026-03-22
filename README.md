@@ -169,4 +169,4 @@ Everything is cached locally in `cache/pokeapi_cache.json` and `cache/images/`. 
 
 Your personal data (notes, tags, favourites) lives in `cache/notes.json`. Back this file up, it's the only thing that can't be rebuilt from scratch.
 
-Remember, HexDex is a read-only viewer. It never modifies, writes to, or validates your .pk files. That being said, always remember to have a backup of your files as part of good practise.
+Remember, HexDex is a read-only viewer. It never modifies, writes to, or validates your `.pk` files. That being said, always remember to have a backup of your files as part of good practise.
