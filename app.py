@@ -33,8 +33,12 @@ os.makedirs(IMAGE_DIR, exist_ok=True)
 
 def load_notes():
     if os.path.exists(NOTES_FILE):
-        with open(NOTES_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(NOTES_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Warning: notes.json is corrupted ({e}). Starting with empty notes.")
+            return {}
     return {}
 
 def save_notes(notes):
@@ -1456,6 +1460,27 @@ def browse_directory():
             chosen = chosen.strip('{}')
             return jsonify({"dir": chosen})
         return jsonify({"dir": None})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/open-folder", methods=["POST"])
+def open_folder():
+    """Open the containing folder of a Pokémon file in the system file explorer."""
+    import subprocess
+    body = request.get_json(silent=True) or {}
+    directory = body.get("dir", "").strip()
+    if not directory or not os.path.isdir(directory):
+        return jsonify({"error": "Invalid directory"}), 400
+    try:
+        import platform
+        system = platform.system()
+        if system == "Windows":
+            os.startfile(directory)
+        elif system == "Darwin":
+            subprocess.Popen(["open", directory])
+        else:
+            subprocess.Popen(["xdg-open", directory])
+        return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
