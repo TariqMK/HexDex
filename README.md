@@ -135,7 +135,7 @@ If you instead prefer to run from the source, simply:
 ### 1. Clone Repo
 
 ```
-git clone https://github.com/yourusername/hexdex.git
+git clone https://github.com/TariqMK/hexdex.git
 cd hexdex
 ```
 
