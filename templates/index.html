@@ -32,7 +32,7 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .header-stats b{color:var(--green)}
 
 /* FILTER BAR */
-.filter-bar{display:flex;align-items:center;gap:10px;padding:7px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;z-index:100}
+.filter-bar{display:flex;align-items:center;gap:10px;padding:7px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;z-index:160}
 .filter-label{font-size:.68rem;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;font-family:'Rajdhani',sans-serif}
 .filter-search,select.filter-sel{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;outline:none;transition:border-color .2s;cursor:pointer}
 .filter-search{width:150px}
@@ -260,6 +260,25 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .panel-fav-btn{position:absolute;top:10px;right:10px;background:var(--surface3);border:1px solid var(--border);border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;transition:all .15s;opacity:.4;z-index:5}
 .panel-fav-btn:hover{opacity:.85;border-color:var(--yellow)}
 .panel-fav-btn.fav-active{opacity:1;border-color:var(--yellow);background:rgba(245,200,66,.12)}
+
+/* Selection mode */
+.btn-select{border-color:var(--text-mute)}
+.btn-select.selecting{border-color:#5bbfb5;color:#5bbfb5;background:rgba(91,191,181,.1)}
+.poke-card.selected{outline:2px solid #5bbfb5;outline-offset:-2px}
+.poke-card.selected::after{content:'✓';position:absolute;top:5px;left:7px;width:18px;height:18px;background:#5bbfb5;color:#fff;border-radius:50%;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:10;line-height:18px;text-align:center}
+.bulk-bar{position:fixed;bottom:-80px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:12px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:bottom .25s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
+.bulk-bar.visible{bottom:24px}
+.bulk-bar-count{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9rem;color:var(--text-dim);min-width:80px}
+.bulk-bar-input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;width:160px;outline:none;transition:border-color .15s}
+.bulk-bar-input:focus{border-color:#5bbfb5}
+.bulk-bar-ac{position:absolute;bottom:calc(100% + 6px);left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:6px;z-index:600;overflow:hidden;display:none;box-shadow:0 -4px 16px rgba(0,0,0,.4);min-width:180px}
+.bulk-bar-ac.open{display:block}
+.bulk-bar-ac-item{padding:5px 10px;font-size:.78rem;font-family:'Exo 2',sans-serif;cursor:pointer;color:var(--text-dim);transition:background .1s}
+.bulk-bar-ac-item:hover,.bulk-bar-ac-item.ac-active{background:var(--surface3);color:var(--text)}
+.bulk-bar-apply{background:rgba(91,191,181,.15);border:1px solid #5bbfb5;border-radius:6px;color:#5bbfb5;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.8rem;letter-spacing:.5px;padding:5px 14px;cursor:pointer;transition:all .15s}
+.bulk-bar-apply:hover{background:rgba(91,191,181,.3)}
+.bulk-bar-clear{background:none;border:none;color:var(--text-mute);font-size:.8rem;cursor:pointer;padding:4px 8px;border-radius:4px;transition:color .15s}
+.bulk-bar-clear:hover{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -276,8 +295,23 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
   </label>
   <button class="btn btn-accent" onclick="scanDirectory()">SCAN</button>
   <button class="btn btn-ghost" onclick="exportCSV()" title="Export collection to CSV">⬇ CSV</button>
+  <button class="btn btn-ghost btn-select" id="btnSelect" onclick="toggleSelectMode()" title="Select multiple Pokémon to bulk tag">Select</button>
   <div class="header-stats" id="headerStats">—</div>
 </header>
+
+<!-- Bulk tag action bar -->
+<div class="bulk-bar" id="bulkBar">
+  <div class="bulk-bar-count" id="bulkCount">0 selected</div>
+  <div style="position:relative">
+    <input class="bulk-bar-input" id="bulkTagInput" placeholder="Add tag to all…"
+      oninput="bulkAcShow(this.value)"
+      onkeydown="bulkTagKeydown(event)"
+      onblur="setTimeout(bulkAcHide,150)">
+    <div class="bulk-bar-ac" id="bulkAcDrop"></div>
+  </div>
+  <button class="bulk-bar-apply" onclick="bulkApplyTag()">APPLY</button>
+  <button class="bulk-bar-clear" onclick="bulkClearSelection()" title="Clear selection">✕ Clear</button>
+</div>
 
 <div class="filter-bar">
   <span class="filter-label">Filter</span>
@@ -430,6 +464,24 @@ async function saveLastDir(dir) {
       body: JSON.stringify({dir})
     });
   } catch(e) {}
+}
+
+async function openContainingFolder(e, filename){
+  e.preventDefault();
+  // Extract directory from filename — filename is just the basename, use currentDir
+  const dir = currentDir;
+  if(!dir){alert('No folder scanned yet.');return;}
+  try {
+    const res = await fetch('/api/open-folder', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({dir})
+    });
+    const data = await res.json();
+    if(data.error) alert('Could not open folder: ' + data.error);
+  } catch(e) {
+    alert('Could not open folder.');
+  }
 }
 
 async function browseDirectory() {
@@ -656,8 +708,8 @@ function renderGrid() {
     const dexNo=api.id?`#${String(api.id).padStart(3,'0')}`:''
     const sprite=getSpriteUrl(p,false);
     const hasNote=group.members.some(m=>m.note||m.tags?.length);
-    return `<div class="poke-card${activeCardIndex===gi?' active':''}" id="card-${gi}"
-      onclick="selectCard(${gi})" style="animation-delay:${Math.min(gi*.02,.4)}s">
+    return `<div class="poke-card${activeCardIndex===gi?' active':''}${selectedCards.has(gi)?' selected':''}" id="card-${gi}"
+      onclick="cardClicked(${gi})" style="animation-delay:${Math.min(gi*.02,.4)}s">
       <div class="gen-badge" data-gen="${p.generation}">G${p.generation}</div>
       ${p.shiny?'<div class="shiny-sweep"></div>':''}
       ${group.members.length>1?`<div class="variant-pip">${group.members.length}</div>`:''}
@@ -686,6 +738,130 @@ function selectCard(gi){
   document.getElementById(`card-${gi}`)?.classList.add('active');
   renderPanel(groupedCards[gi]);
   openPanel();
+}
+
+// ── Selection mode ────────────────────────────────────────────────
+let selectMode = false;
+let selectedCards = new Set();
+let bulkAcIndex = -1;
+
+function cardClicked(gi){
+  if(selectMode){
+    if(selectedCards.has(gi)){
+      selectedCards.delete(gi);
+      document.getElementById(`card-${gi}`)?.classList.remove('selected');
+    } else {
+      selectedCards.add(gi);
+      document.getElementById(`card-${gi}`)?.classList.add('selected');
+    }
+    updateBulkBar();
+  } else {
+    selectCard(gi);
+  }
+}
+
+function toggleSelectMode(){
+  selectMode = !selectMode;
+  const btn = document.getElementById('btnSelect');
+  btn.classList.toggle('selecting', selectMode);
+  btn.textContent = selectMode ? 'Done' : 'Select';
+  if(!selectMode){
+    bulkClearSelection();
+    closePanel();
+  }
+}
+
+function updateBulkBar(){
+  const bar = document.getElementById('bulkBar');
+  const count = document.getElementById('bulkCount');
+  count.textContent = `${selectedCards.size} selected`;
+  bar.classList.toggle('visible', selectedCards.size > 0);
+}
+
+function bulkClearSelection(){
+  selectedCards.forEach(gi => document.getElementById(`card-${gi}`)?.classList.remove('selected'));
+  selectedCards.clear();
+  updateBulkBar();
+  bulkAcHide();
+  document.getElementById('bulkTagInput').value = '';
+}
+
+function bulkAcShow(val){
+  const drop = document.getElementById('bulkAcDrop');
+  const q = val.toLowerCase().trim();
+  if(!q){drop.classList.remove('open'); bulkAcIndex=-1; return;}
+  const matches = getAllTags().filter(t => t.toLowerCase().includes(q));
+  if(!matches.length){drop.classList.remove('open'); bulkAcIndex=-1; return;}
+  drop.innerHTML = matches.map((t,i) =>
+    `<div class="bulk-bar-ac-item" data-tag="${t}" onclick="bulkAcSelect('${t.replace(/'/g,"\\'")}')">
+      ${t.replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), m=>`<b>${m}</b>`)}
+    </div>`
+  ).join('');
+  bulkAcIndex = -1;
+  drop.classList.add('open');
+}
+
+function bulkAcHide(){
+  document.getElementById('bulkAcDrop')?.classList.remove('open');
+  bulkAcIndex = -1;
+}
+
+function bulkAcSelect(tag){
+  document.getElementById('bulkTagInput').value = tag;
+  bulkAcHide();
+}
+
+function bulkTagKeydown(e){
+  const drop = document.getElementById('bulkAcDrop');
+  const items = drop ? [...drop.querySelectorAll('.bulk-bar-ac-item')] : [];
+  if(e.key==='ArrowDown'){e.preventDefault();bulkAcIndex=Math.min(bulkAcIndex+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('ac-active',i===bulkAcIndex));return;}
+  if(e.key==='ArrowUp'){e.preventDefault();bulkAcIndex=Math.max(bulkAcIndex-1,0);items.forEach((el,i)=>el.classList.toggle('ac-active',i===bulkAcIndex));return;}
+  if(e.key==='Escape'){bulkAcHide();return;}
+  if(e.key==='Enter'){
+    e.preventDefault();
+    if(bulkAcIndex>=0&&items[bulkAcIndex]){bulkAcSelect(items[bulkAcIndex].dataset.tag);return;}
+    if(items.length===1){bulkAcSelect(items[0].dataset.tag);return;}
+    bulkApplyTag();
+  }
+}
+
+async function bulkApplyTag(){
+  const tag = document.getElementById('bulkTagInput').value.trim();
+  if(!tag || !selectedCards.size) return;
+
+  // Collect all saves needed — one per file (not per group)
+  const toSave = [];
+  selectedCards.forEach(gi => {
+    const group = groupedCards[gi];
+    group.members.forEach(p => {
+      if(!p.tags) p.tags = [];
+      if(!p.tags.includes(tag)) p.tags.push(tag);
+      toSave.push({filename: p.filename, note: p.note||'', tags: p.tags, favourite: p.favourite||false});
+    });
+  });
+
+  // Save sequentially — Flask is single-threaded, parallel writes corrupt notes.json
+  for(const payload of toSave){
+    await fetch('/api/notes', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+  }
+
+  // Refresh grid dots and tag dropdown
+  rebuildTagDropdown();
+  renderGrid();
+  // Re-apply selected state (renderGrid wipes it)
+  selectedCards.forEach(gi => document.getElementById(`card-${gi}`)?.classList.add('selected'));
+
+  document.getElementById('bulkTagInput').value = '';
+  bulkAcHide();
+
+  // Flash the apply button as confirmation
+  const btn = document.querySelector('.bulk-bar-apply');
+  btn.textContent = '✓ Done';
+  setTimeout(() => btn.textContent = 'APPLY', 1200);
 }
 
 function switchVariant(gi,vi){
@@ -768,7 +944,11 @@ function renderPanel(group){
     <div class="panel-dex">Pokédex ${dexNo} · Gen ${p.generation} · ${p.origin_game||'Unknown'}</div>
     <div class="panel-types">${(api.types||[]).map(typeBadge).join('')}</div>
     ${api.genus?`<div class="panel-genus">${api.genus}</div>`:''}
-    <a class="serebii-link" href="${serebiiUrl}" target="_blank" rel="noopener">more info ↗</a>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:7px">
+      <a class="serebii-link" style="margin-top:0" href="${serebiiUrl}" target="_blank" rel="noopener">more info ↗</a>
+      <span style="color:var(--border);font-size:.68rem">·</span>
+      <a class="serebii-link" style="margin-top:0" href="#" onclick="openContainingFolder(event,'${p.filename.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">open folder ↗</a>
+    </div>
   `;
 
   const hM=api.height?(api.height/10).toFixed(1)+' m':'—';
