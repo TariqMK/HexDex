@@ -112,7 +112,7 @@ In addition to your tags, easily filter your collection of Pokémon by type, gen
 
 If you wish to preserve the details of your collection in other formats, simply export to CSV to have all the details from the application in one simple file. 
 
-### Offline After First Run
+### Offline (After First Run)
 
 HexDex runs through the generous services that PokeAPI offers (thank you PokeAPI!). In order to prevent duplicate and unnecessary (see what I did there?) API calls, any data pulled for the first time will be stored and cached locally thereafter. This means that although the first API pull might take a few moments, thereafter your collection will load instantly and entirely offline.
 
