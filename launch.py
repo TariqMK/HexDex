@@ -14,7 +14,7 @@ Usage:
 
 import threading
 import time
-import webview
+import webbrowser
 import app as flask_app
 
 PORT = 5000
@@ -28,10 +28,10 @@ if __name__ == "__main__":
     t = threading.Thread(target=run_flask, daemon=True)
     t.start()
 
-    # Give Flask a moment to start before opening the window
+    # Give Flask a moment to start
     time.sleep(0.8)
 
-    # Open the pywebview window
+    import webview
     webview.create_window(
         title="HexDex",
         url=f"http://localhost:{PORT}",
@@ -40,4 +40,4 @@ if __name__ == "__main__":
         min_size=(900, 600),
         resizable=True,
     )
-    webview.start()
+    webview.start(gui='qt')
