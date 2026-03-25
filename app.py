@@ -1167,7 +1167,7 @@ def parse_pk4(raw: bytes) -> dict:
         "filename": "",
         "pid": pv,
         "generation": 4,
-        "gender": {0:'male',1:'female',2:None}.get((raw[0x1D]>>1)&3, None),
+        "gender": {0:'male',1:'female',2:None}.get((raw[0x40]>>1)&3, None),  # Gen4: byte 0x40, not 0x1D
         "origin_game": origin_game,
         "species_id": species,
         "nickname": nickname,
@@ -1270,7 +1270,7 @@ def parse_pk5(raw: bytes) -> dict:
         "filename": "",
         "pid": pv,
         "generation": 5,
-        "gender": {0:'male',1:'female',2:None}.get((raw[0x1D]>>1)&3, None),
+        "gender": {0:'male',1:'female',2:None}.get((raw[0x40]>>1)&3, None),  # Gen5: byte 0x40, same as Gen4
         "origin_game": origin_game,
         "species_id": species,
         "nickname": nickname,
