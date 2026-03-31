@@ -34,9 +34,16 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 /* FILTER BAR */
 .filter-bar{display:flex;align-items:center;gap:10px;padding:7px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;z-index:160}
 .filter-label{font-size:.68rem;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;font-family:'Rajdhani',sans-serif}
-.filter-search,select.filter-sel{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;outline:none;transition:border-color .2s;cursor:pointer}
-.filter-search{width:150px}
-.filter-search:focus,select.filter-sel:focus{border-color:var(--accent)}
+.filter-search{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;outline:none;transition:border-color .2s;cursor:pointer;width:150px}
+.filter-search:focus{border-color:var(--accent)}
+.custom-sel-wrap{position:relative;display:inline-block}
+.custom-sel-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;outline:none;cursor:pointer;white-space:nowrap;transition:border-color .2s}
+.custom-sel-btn:hover,.custom-sel-btn.open{border-color:var(--accent)}
+.custom-sel-drop{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;z-index:400;min-width:100%;max-height:260px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.custom-sel-drop.open{display:block}
+.custom-sel-item{padding:6px 12px;font-family:'Exo 2',sans-serif;font-size:.8rem;color:var(--text-dim);cursor:pointer;white-space:nowrap;transition:background .1s}
+.custom-sel-item:hover{background:var(--surface3);color:var(--text)}
+.custom-sel-item.selected{color:var(--accent)}
 .filter-search::placeholder{color:var(--text-mute)}
 .shiny-toggle{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.8rem;color:var(--text-dim);user-select:none}
 .shiny-toggle input{accent-color:var(--yellow)}
@@ -306,31 +313,52 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 <div class="filter-bar">
   <span class="filter-label">Filter</span>
   <input class="filter-search" id="filterName" placeholder="Name / nickname…" oninput="applyFilters()">
-  <select class="filter-sel" id="filterType" onchange="applyFilters()">
-    <option value="">All Types</option>
-    <option>normal</option><option>fire</option><option>water</option>
-    <option>electric</option><option>grass</option><option>ice</option>
-    <option>fighting</option><option>poison</option><option>ground</option>
-    <option>flying</option><option>psychic</option><option>bug</option>
-    <option>rock</option><option>ghost</option><option>dragon</option>
-    <option>dark</option><option>steel</option><option>fairy</option>
-  </select>
-  <select class="filter-sel" id="filterGen" onchange="applyFilters()">
-    <option value="">All Gens</option>
-    <option value="1">Gen 1</option>
-    <option value="2">Gen 2</option>
-    <option value="3">Gen 3</option>
-    <option value="4">Gen 4</option>
-    <option value="5">Gen 5</option>
-    <option value="6">Gen 6</option>
-    <option value="7">Gen 7</option>
-  </select>
-  <select class="filter-sel" id="sortBy" onchange="applyFilters()">
-    <option value="dex">Sort: Dex #</option>
-    <option value="level">Sort: Level</option>
-    <option value="name">Sort: Name</option>
-    <option value="shiny">Sort: Shiny first</option>
-  </select>
+  <div class="custom-sel-wrap" id="wrapType">
+    <button class="custom-sel-btn" id="btnType" onclick="toggleCustomSel('wrapType')">All Types ▾</button>
+    <div class="custom-sel-drop" id="dropType">
+      <div class="custom-sel-item selected" data-val="">All Types</div>
+      <div class="custom-sel-item" data-val="normal">Normal</div>
+      <div class="custom-sel-item" data-val="fire">Fire</div>
+      <div class="custom-sel-item" data-val="water">Water</div>
+      <div class="custom-sel-item" data-val="electric">Electric</div>
+      <div class="custom-sel-item" data-val="grass">Grass</div>
+      <div class="custom-sel-item" data-val="ice">Ice</div>
+      <div class="custom-sel-item" data-val="fighting">Fighting</div>
+      <div class="custom-sel-item" data-val="poison">Poison</div>
+      <div class="custom-sel-item" data-val="ground">Ground</div>
+      <div class="custom-sel-item" data-val="flying">Flying</div>
+      <div class="custom-sel-item" data-val="psychic">Psychic</div>
+      <div class="custom-sel-item" data-val="bug">Bug</div>
+      <div class="custom-sel-item" data-val="rock">Rock</div>
+      <div class="custom-sel-item" data-val="ghost">Ghost</div>
+      <div class="custom-sel-item" data-val="dragon">Dragon</div>
+      <div class="custom-sel-item" data-val="dark">Dark</div>
+      <div class="custom-sel-item" data-val="steel">Steel</div>
+      <div class="custom-sel-item" data-val="fairy">Fairy</div>
+    </div>
+  </div>
+  <div class="custom-sel-wrap" id="wrapGen">
+    <button class="custom-sel-btn" id="btnGen" onclick="toggleCustomSel('wrapGen')">All Gens ▾</button>
+    <div class="custom-sel-drop" id="dropGen">
+      <div class="custom-sel-item selected" data-val="">All Gens</div>
+      <div class="custom-sel-item" data-val="1">Gen 1</div>
+      <div class="custom-sel-item" data-val="2">Gen 2</div>
+      <div class="custom-sel-item" data-val="3">Gen 3</div>
+      <div class="custom-sel-item" data-val="4">Gen 4</div>
+      <div class="custom-sel-item" data-val="5">Gen 5</div>
+      <div class="custom-sel-item" data-val="6">Gen 6</div>
+      <div class="custom-sel-item" data-val="7">Gen 7</div>
+    </div>
+  </div>
+  <div class="custom-sel-wrap" id="wrapSort">
+    <button class="custom-sel-btn" id="btnSort" onclick="toggleCustomSel('wrapSort')">Sort: Dex # ▾</button>
+    <div class="custom-sel-drop" id="dropSort">
+      <div class="custom-sel-item selected" data-val="dex">Sort: Dex #</div>
+      <div class="custom-sel-item" data-val="level">Sort: Level</div>
+      <div class="custom-sel-item" data-val="name">Sort: Name</div>
+      <div class="custom-sel-item" data-val="shiny">Sort: Shiny first</div>
+    </div>
+  </div>
   <label class="shiny-toggle">
     <input type="checkbox" id="filterFav" onchange="applyFilters()">
     ⭐ Favourites
@@ -378,6 +406,56 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 <script>
 // ── State ─────────────────────────────────────────────────────────
 let allPokemon = [], filteredPokemon = [], groupedCards = [];
+
+// ── Custom select dropdowns (replaces native <select> for Qt compat) ──
+const _selVal = {type:'', gen:'', sort:'dex'};
+
+function toggleCustomSel(wrapId){
+  const wrap = document.getElementById(wrapId);
+  const btn  = wrap.querySelector('.custom-sel-btn');
+  const drop = wrap.querySelector('.custom-sel-drop');
+  const isOpen = drop.classList.contains('open');
+  // Close all first
+  document.querySelectorAll('.custom-sel-drop.open').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.custom-sel-btn.open').forEach(b=>b.classList.remove('open'));
+  if(!isOpen){
+    drop.classList.add('open');
+    btn.classList.add('open');
+  }
+}
+
+function pickCustomSel(wrapId, val, label){
+  const wrap = document.getElementById(wrapId);
+  const btn  = wrap.querySelector('.custom-sel-btn');
+  const drop = wrap.querySelector('.custom-sel-drop');
+  // Update selected state
+  drop.querySelectorAll('.custom-sel-item').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.val === val);
+  });
+  btn.textContent = label + ' ▾';
+  btn.classList.remove('open');
+  drop.classList.remove('open');
+  // Store value
+  if(wrapId==='wrapType') _selVal.type = val;
+  else if(wrapId==='wrapGen') _selVal.gen = val;
+  else if(wrapId==='wrapSort') _selVal.sort = val;
+  applyFilters();
+}
+
+// Wire up all custom-sel-item clicks
+document.addEventListener('click', e => {
+  const item = e.target.closest('.custom-sel-item');
+  if(item){
+    const wrap = item.closest('.custom-sel-wrap');
+    if(wrap) pickCustomSel(wrap.id, item.dataset.val, item.textContent);
+    return;
+  }
+  // Close if clicking outside
+  if(!e.target.closest('.custom-sel-wrap')){
+    document.querySelectorAll('.custom-sel-drop.open').forEach(d=>d.classList.remove('open'));
+    document.querySelectorAll('.custom-sel-btn.open').forEach(b=>b.classList.remove('open'));
+  }
+});
 
 // ── Global tooltip engine ─────────────────────────────────────────
 // Appends to body so it never gets clipped by overflow:hidden/auto ancestors
@@ -659,13 +737,13 @@ const LEGENDARY_IDS = new Set([
 // ── Filters ───────────────────────────────────────────────────────
 function applyFilters() {
   const nameQ      = document.getElementById('filterName').value.toLowerCase();
-  const typeQ      = document.getElementById('filterType').value;
-  const genQ       = document.getElementById('filterGen').value;
+  const typeQ      = _selVal.type;
+  const genQ       = _selVal.gen;
   const shinyQ     = document.getElementById('filterShiny').checked;
   const favQ       = document.getElementById('filterFav')?.checked||false;
   const legendaryQ = document.getElementById('filterLegendary')?.checked||false;
   const eggQ       = document.getElementById('filterEgg')?.checked||false;
-  const sortQ      = document.getElementById('sortBy').value;
+  const sortQ      = _selVal.sort;
 
   filteredPokemon = allPokemon.filter(p=>{
     if(nameQ&&!(p.api?.name||'').includes(nameQ)&&!(p.nickname||'').toLowerCase().includes(nameQ))return false;
