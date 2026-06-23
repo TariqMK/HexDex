@@ -321,6 +321,157 @@ GEN3_ITEM_SLUGS = {
     175: "enigma-berry",
 }
 
+# Gen 3 internal species index -> National Dex number
+# Gen 3 (RSE/FRLG) stores species as a game-internal index, NOT the national dex number.
+# Kanto (1-151) and Johto (152-251) are 1:1 — NOT listed here (identity mapping).
+# Internal indices 252-276 are OLD_UNOWN form sprites — map to Unown (national 201).
+# Internal indices 277-411 are Hoenn mons in RSE's custom internal order.
+# Source: pret/pokeemerald include/constants/species.h (SPECIES_TREECKO=277, SPECIES_TORCHIC=280, etc.)
+# Confirmed empirically: 255-TORCHIC-G3-EM-L5.pk3 has species field=280, moves=Scratch/Growl, EXP=152 ✓
+GEN3_INTERNAL_TO_NATIONAL = {
+    # OLD_UNOWN forms (ghost slots, never exported as real mons by PKHeX)
+    252:201,253:201,254:201,255:201,256:201,257:201,258:201,
+    259:201,260:201,261:201,262:201,263:201,264:201,265:201,
+    266:201,267:201,268:201,269:201,270:201,271:201,272:201,
+    273:201,274:201,275:201,276:201,
+    # Hoenn mons (pret/pokeemerald species.h)
+    277:252,  # Treecko
+    278:253,  # Grovyle
+    279:254,  # Sceptile
+    280:255,  # Torchic
+    281:256,  # Combusken
+    282:257,  # Blaziken
+    283:258,  # Mudkip
+    284:259,  # Marshtomp
+    285:260,  # Swampert
+    286:261,  # Poochyena
+    287:262,  # Mightyena
+    288:263,  # Zigzagoon
+    289:264,  # Linoone
+    290:265,  # Wurmple
+    291:266,  # Silcoon
+    292:267,  # Beautifly
+    293:268,  # Cascoon
+    294:269,  # Dustox
+    295:270,  # Lotad
+    296:271,  # Lombre
+    297:272,  # Ludicolo
+    298:273,  # Seedot
+    299:274,  # Nuzleaf
+    300:275,  # Shiftry
+    301:290,  # Nincada
+    302:291,  # Ninjask
+    303:292,  # Shedinja
+    304:276,  # Taillow
+    305:277,  # Swellow
+    306:285,  # Shroomish
+    307:286,  # Breloom
+    308:327,  # Spinda
+    309:278,  # Wingull
+    310:279,  # Pelipper
+    311:283,  # Surskit
+    312:284,  # Masquerain
+    313:320,  # Wailmer
+    314:321,  # Wailord
+    315:300,  # Skitty
+    316:301,  # Delcatty
+    317:352,  # Kecleon
+    318:343,  # Baltoy
+    319:344,  # Claydol
+    320:299,  # Nosepass
+    321:324,  # Torkoal
+    322:302,  # Sableye
+    323:339,  # Barboach
+    324:340,  # Whiscash
+    325:370,  # Luvdisc
+    326:341,  # Corphish
+    327:342,  # Crawdaunt
+    328:349,  # Feebas
+    329:350,  # Milotic
+    330:318,  # Carvanha
+    331:319,  # Sharpedo
+    332:328,  # Trapinch
+    333:329,  # Vibrava
+    334:330,  # Flygon
+    335:296,  # Makuhita
+    336:297,  # Hariyama
+    337:309,  # Electrike
+    338:310,  # Manectric
+    339:322,  # Numel
+    340:323,  # Camerupt
+    341:363,  # Spheal
+    342:364,  # Sealeo
+    343:365,  # Walrein
+    344:331,  # Cacnea
+    345:332,  # Cacturne
+    346:361,  # Snorunt
+    347:362,  # Glalie
+    348:337,  # Lunatone
+    349:338,  # Solrock
+    350:298,  # Azurill
+    351:325,  # Spoink
+    352:326,  # Grumpig
+    353:311,  # Plusle
+    354:312,  # Minun
+    355:303,  # Mawile
+    356:307,  # Meditite
+    357:308,  # Medicham
+    358:333,  # Swablu
+    359:334,  # Altaria
+    # 360:360  Wynaut — identity, not listed
+    361:355,  # Duskull
+    362:356,  # Dusclops
+    363:315,  # Roselia
+    364:287,  # Slakoth
+    365:288,  # Vigoroth
+    366:289,  # Slaking
+    367:316,  # Gulpin
+    368:317,  # Swalot
+    369:357,  # Tropius
+    370:293,  # Whismur
+    371:294,  # Loudred
+    372:295,  # Exploud
+    373:366,  # Clamperl
+    374:367,  # Huntail
+    375:368,  # Gorebyss
+    376:359,  # Absol
+    377:353,  # Shuppet
+    378:354,  # Banette
+    379:336,  # Seviper
+    380:335,  # Zangoose
+    381:369,  # Relicanth
+    382:304,  # Aron
+    383:305,  # Lairon
+    384:306,  # Aggron
+    385:351,  # Castform
+    386:313,  # Volbeat
+    387:314,  # Illumise
+    388:345,  # Lileep
+    389:346,  # Cradily
+    390:347,  # Anorith
+    391:348,  # Armaldo
+    392:280,  # Ralts
+    393:281,  # Kirlia
+    394:282,  # Gardevoir
+    395:371,  # Bagon
+    396:372,  # Shelgon
+    397:373,  # Salamence
+    398:374,  # Beldum
+    399:375,  # Metang
+    400:376,  # Metagross
+    401:377,  # Regirock
+    402:378,  # Regice
+    403:379,  # Registeel
+    404:382,  # Kyogre
+    405:383,  # Groudon
+    406:384,  # Rayquaza
+    407:380,  # Latias
+    408:381,  # Latios
+    409:385,  # Jirachi
+    410:386,  # Deoxys
+    411:358,  # Chimecho
+}
+
 def translate_item_id(item_id: int, generation: int):
     """Translate a Gen2/3 internal item ID to a PokéAPI-compatible identifier.
     Returns the item_id unchanged for Gen4+ (direct PokéAPI match).
@@ -334,46 +485,6 @@ def translate_item_id(item_id: int, generation: int):
     # Gen 4-7: IDs match PokéAPI directly
     return item_id
 
-
-    """Fetch English name and description for a held item.
-    item_id can be an int (Gen4+ direct PokéAPI ID) or a slug string (Gen2/3).
-    Cached under item:{item_id}. Returns None for item_id 0 or None."""
-    if not item_id:
-        return None
-    key = f"item:{item_id}"
-    if key in cache:
-        return cache[key]
-    try:
-        r = requests.get(f"{POKEAPI_BASE}/item/{item_id}", timeout=10)
-        r.raise_for_status()
-        it = r.json()
-
-        name = it.get("name", "")
-        for n in it.get("names", []):
-            if n["language"]["name"] == "en":
-                name = n["name"]
-                break
-
-        effect = ""
-        for e in it.get("effect_entries", []):
-            if e["language"]["name"] == "en":
-                effect = e.get("short_effect") or e.get("effect") or ""
-                break
-        # Fallback to flavour text if no effect entry
-        if not effect:
-            for ft in it.get("flavor_text_entries", []):
-                if ft["language"]["name"] == "en":
-                    effect = ft.get("text", "").replace("\n", " ").replace("\f", " ")
-                    break
-
-        data = {"name": name, "effect": effect}
-        cache[key] = data
-        save_cache(cache)
-        time.sleep(0.15)
-        return data
-    except Exception as e:
-        print(f"PokéAPI item error for id {item_id}: {e}")
-        return None
 
 def enrich_moves(move_ids: list, cache: dict) -> list:
     """Return list of move dicts for the four move slots (skipping 0s and invalid IDs)."""
@@ -955,6 +1066,10 @@ def parse_pk3(data: bytes) -> dict:
 
     # Sub A
     species   = struct.unpack_from('<H', data, 32)[0]
+    # Convert Gen3 internal species index -> national dex number.
+    # RSE/FRLG store an internal index (e.g. Torchic=280, Ralts=392), not national dex.
+    # Kanto/Johto (1-251) are identity. Hoenn mons need mapping.
+    species   = GEN3_INTERNAL_TO_NATIONAL.get(species, species)
     if species == 0 or species > 493:
         return None
     item_held  = struct.unpack_from('<H', data, 34)[0]
