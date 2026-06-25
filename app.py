@@ -242,12 +242,17 @@ def fetch_ability_data(ability_name: str, cache: dict) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# Item ID translation tables for Gen 2 and Gen 3
+# Item ID translation tables for Gen 2, 3, and 4
 # ---------------------------------------------------------------------------
-# Gen 4-7 item IDs match PokéAPI directly. Gen 2-3 use different internal
-# numbering, so we map them to PokéAPI item slugs (name-based lookup).
+# ALL generations use different internal item numbering from PokéAPI.
+# We map each gen's internal ID to a PokéAPI item slug (name-based lookup).
 # Only holdable items are included — key items, TMs, balls are excluded.
-# Sources: Bulbapedia item index lists cross-referenced with PokéAPI slugs.
+# Sources: pret decompilations (pokeemerald, pokeheartgold) cross-referenced
+#          with the PokéAPI item CSV (github.com/PokeAPI/pokeapi/data/v2/csv/items.csv).
+#
+# NOTE on Gen 5-7: Also use shifted numbering vs PokéAPI. When real files are
+# tested and offsets confirmed, add GEN5_ITEM_SLUGS here and extend
+# translate_item_id. For now they fall through to None — no incorrect data shown.
 
 # Gen 2 (Gold/Silver/Crystal) internal item ID -> PokéAPI slug
 GEN2_ITEM_SLUGS = {
@@ -282,43 +287,126 @@ GEN2_ITEM_SLUGS = {
 }
 
 # Gen 3 (RS/E/FR/LG) internal item ID -> PokéAPI slug
+# Source: pret/pokefirered include/constants/items.h (confirmed against Primeape FRLG file:
+#   item field=182, FRLG ITEM_EXP_SHARE=182, correctly maps to 'exp-share').
+# Previous table was wrong: berries were scrambled and held items were shifted by -9.
 GEN3_ITEM_SLUGS = {
-    # Vitamins
-    17: "hp-up", 18: "protein", 19: "iron", 20: "carbos", 21: "calcium",
-    22: "rare-candy", 23: "pp-up", 24: "zinc", 25: "pp-max",
-    # In-battle items
-    26: "guard-spec", 27: "dire-hit", 28: "x-attack", 29: "x-defend",
-    30: "x-speed", 31: "x-accuracy", 32: "x-sp-atk",
-    # Key held items by Gen3 internal ID (from Bulbapedia Gen III index list)
-    178: "kings-rock",     179: "silverpowder",  180: "amulet-coin",
-    181: "cleanse-tag",    182: "soul-dew",       183: "deep-sea-tooth",
-    184: "deep-sea-scale", 185: "smoke-ball",     186: "everstone",
-    187: "focus-band",     188: "lucky-egg",      189: "scope-lens",
-    190: "metal-coat",     191: "leftovers",      192: "dragon-scale",
-    193: "light-ball",     194: "soft-sand",      195: "hard-stone",
-    196: "miracle-seed",   197: "blackglasses",   198: "black-belt",
-    199: "magnet",         200: "mystic-water",   201: "sharp-beak",
-    202: "poison-barb",    203: "nevermeltice",   204: "spell-tag",
-    205: "twistedspoon",   206: "charcoal",       207: "dragon-fang",
-    208: "silk-scarf",     209: "up-grade",       210: "shell-bell",
-    211: "sea-incense",    212: "lax-incense",    213: "lucky-punch",
-    214: "metal-powder",   215: "thick-club",     216: "stick",
-    # Berries (Gen3 has many berries; common held ones)
-    133: "oran-berry",     134: "sitrus-berry",   135: "leppa-berry",
-    136: "lum-berry",      137: "rawst-berry",    138: "aspear-berry",
-    139: "persim-berry",   140: "chesto-berry",   141: "pecha-berry",
-    142: "cheri-berry",    143: "figy-berry",     144: "wiki-berry",
-    145: "mago-berry",     146: "aguav-berry",    147: "iapapa-berry",
-    148: "razz-berry",     149: "bluk-berry",     150: "nanab-berry",
-    151: "wepear-berry",   152: "pinap-berry",    153: "pomeg-berry",
-    154: "kelpsy-berry",   155: "qualot-berry",   156: "hondew-berry",
-    157: "grepa-berry",    158: "tamato-berry",   159: "cornn-berry",
-    160: "magost-berry",   161: "rabuta-berry",   162: "nomel-berry",
-    163: "spelon-berry",   164: "pamtre-berry",   165: "watmel-berry",
-    166: "durin-berry",    167: "belue-berry",    168: "liechi-berry",
-    169: "ganlon-berry",   170: "salac-berry",    171: "petaya-berry",
-    172: "apicot-berry",   173: "lansat-berry",   174: "starf-berry",
-    175: "enigma-berry",
+    # Berries (133-175) — Gen3 FRLG internal order from pret/pokefirered
+    133:"cheri-berry",   134:"chesto-berry",  135:"pecha-berry",
+    136:"rawst-berry",   137:"aspear-berry",  138:"leppa-berry",
+    139:"oran-berry",    140:"persim-berry",  141:"lum-berry",
+    142:"sitrus-berry",  143:"figy-berry",    144:"wiki-berry",
+    145:"mago-berry",    146:"aguav-berry",   147:"iapapa-berry",
+    148:"razz-berry",    149:"bluk-berry",    150:"nanab-berry",
+    151:"wepear-berry",  152:"pinap-berry",   153:"pomeg-berry",
+    154:"kelpsy-berry",  155:"qualot-berry",  156:"hondew-berry",
+    157:"grepa-berry",   158:"tamato-berry",  159:"cornn-berry",
+    160:"magost-berry",  161:"rabuta-berry",  162:"nomel-berry",
+    163:"spelon-berry",  164:"pamtre-berry",  165:"watmel-berry",
+    166:"durin-berry",   167:"belue-berry",   168:"liechi-berry",
+    169:"ganlon-berry",  170:"salac-berry",   171:"petaya-berry",
+    172:"apicot-berry",  173:"lansat-berry",  174:"starf-berry",
+    175:"enigma-berry",
+    # 176-178: UNUSED_BERRY_1/2/3 — no slug, omitted
+    # Held items (179-225) — pret/pokefirered FRLG internal IDs
+    179:"bright-powder", 180:"white-herb",    181:"macho-brace",
+    182:"exp-share",     183:"quick-claw",    184:"soothe-bell",
+    185:"mental-herb",   186:"choice-band",   187:"kings-rock",
+    188:"silver-powder", 189:"amulet-coin",   190:"cleanse-tag",
+    191:"soul-dew",      192:"deep-sea-tooth",193:"deep-sea-scale",
+    194:"smoke-ball",    195:"everstone",     196:"focus-band",
+    197:"lucky-egg",     198:"scope-lens",    199:"metal-coat",
+    200:"leftovers",     201:"dragon-scale",  202:"light-ball",
+    203:"soft-sand",     204:"hard-stone",    205:"miracle-seed",
+    206:"black-glasses", 207:"black-belt",    208:"magnet",
+    209:"mystic-water",  210:"sharp-beak",    211:"poison-barb",
+    212:"never-melt-ice",213:"spell-tag",     214:"twisted-spoon",
+    215:"charcoal",      216:"dragon-fang",   217:"silk-scarf",
+    218:"up-grade",      219:"shell-bell",    220:"sea-incense",
+    221:"lax-incense",   222:"lucky-punch",   223:"metal-powder",
+    224:"thick-club",    225:"stick",
+}
+
+# Gen 4 (DPPt / HGSS) internal item ID -> PokéAPI slug
+# Gen4 item IDs do NOT match PokéAPI — they're offset by ~23 in the held-item
+# range because Gen4 inserted additional items before the holdable item block.
+# Confirmed: Gen4 internal 216 (Exp Share) → PokéAPI 193 (exp-share).
+# Source: pret/pokeheartgold include/constants/items.h cross-referenced with
+#         PokeAPI/pokeapi data/v2/csv/items.csv.
+# Berries (149-212): Gen4 internal berry IDs shifted vs PokéAPI berry IDs.
+# Held items (213-327): all held items that appear in competitive / normal play.
+GEN4_ITEM_SLUGS = {
+    # Berries (Gen4 internal 149-212)
+    149:"cheri-berry",    150:"chesto-berry",   151:"pecha-berry",
+    152:"rawst-berry",    153:"aspear-berry",    154:"leppa-berry",
+    155:"oran-berry",     156:"persim-berry",    157:"lum-berry",
+    158:"sitrus-berry",   159:"figy-berry",      160:"wiki-berry",
+    161:"mago-berry",     162:"aguav-berry",     163:"iapapa-berry",
+    164:"razz-berry",     165:"bluk-berry",      166:"nanab-berry",
+    167:"wepear-berry",   168:"pinap-berry",     169:"pomeg-berry",
+    170:"kelpsy-berry",   171:"qualot-berry",    172:"hondew-berry",
+    173:"grepa-berry",    174:"tamato-berry",    175:"cornn-berry",
+    176:"magost-berry",   177:"rabuta-berry",    178:"nomel-berry",
+    179:"spelon-berry",   180:"pamtre-berry",    181:"watmel-berry",
+    182:"durin-berry",    183:"belue-berry",      184:"occa-berry",
+    185:"passho-berry",   186:"wacan-berry",     187:"rindo-berry",
+    188:"yache-berry",    189:"chople-berry",    190:"kebia-berry",
+    191:"shuca-berry",    192:"coba-berry",      193:"payapa-berry",
+    194:"tanga-berry",    195:"charti-berry",    196:"kasib-berry",
+    197:"haban-berry",    198:"colbur-berry",    199:"babiri-berry",
+    200:"chilan-berry",   201:"liechi-berry",    202:"ganlon-berry",
+    203:"salac-berry",    204:"petaya-berry",    205:"apicot-berry",
+    206:"lansat-berry",   207:"starf-berry",     208:"enigma-berry",
+    209:"micle-berry",    210:"custap-berry",    211:"jaboca-berry",
+    212:"rowap-berry",
+    # Held items (Gen4 internal 213-327)
+    213:"bright-powder",  214:"white-herb",      215:"macho-brace",
+    216:"exp-share",      217:"quick-claw",      218:"soothe-bell",
+    219:"mental-herb",    220:"choice-band",     221:"kings-rock",
+    222:"silver-powder",  223:"amulet-coin",     224:"cleanse-tag",
+    225:"soul-dew",       226:"deep-sea-tooth",  227:"deep-sea-scale",
+    228:"smoke-ball",     229:"everstone",       230:"focus-band",
+    231:"lucky-egg",      232:"scope-lens",      233:"metal-coat",
+    234:"leftovers",      235:"dragon-scale",    236:"light-ball",
+    237:"soft-sand",      238:"hard-stone",      239:"miracle-seed",
+    240:"black-glasses",  241:"black-belt",      242:"magnet",
+    243:"mystic-water",   244:"sharp-beak",      245:"poison-barb",
+    246:"never-melt-ice", 247:"spell-tag",       248:"twisted-spoon",
+    249:"charcoal",       250:"dragon-fang",     251:"silk-scarf",
+    252:"up-grade",       253:"shell-bell",      254:"sea-incense",
+    255:"lax-incense",    256:"lucky-punch",     257:"metal-powder",
+    258:"thick-club",     259:"stick",
+    260:"red-scarf",      261:"blue-scarf",      262:"pink-scarf",
+    263:"green-scarf",    264:"yellow-scarf",
+    265:"wide-lens",      266:"muscle-band",     267:"wise-glasses",
+    268:"expert-belt",    269:"light-clay",      270:"life-orb",
+    271:"power-herb",     272:"toxic-orb",       273:"flame-orb",
+    274:"quick-powder",   275:"focus-sash",      276:"zoom-lens",
+    277:"metronome",      278:"iron-ball",       279:"lagging-tail",
+    280:"destiny-knot",   281:"black-sludge",    282:"icy-rock",
+    283:"smooth-rock",    284:"heat-rock",       285:"damp-rock",
+    286:"grip-claw",      287:"choice-scarf",    288:"sticky-barb",
+    289:"power-bracer",   290:"power-belt",      291:"power-lens",
+    292:"power-band",     293:"power-anklet",    294:"power-weight",
+    295:"shed-shell",     296:"big-root",        297:"choice-specs",
+    # Plates (298-313)
+    298:"flame-plate",    299:"splash-plate",    300:"zap-plate",
+    301:"meadow-plate",   302:"icicle-plate",    303:"fist-plate",
+    304:"toxic-plate",    305:"earth-plate",     306:"sky-plate",
+    307:"mind-plate",     308:"insect-plate",    309:"stone-plate",
+    310:"spooky-plate",   311:"draco-plate",     312:"dread-plate",
+    313:"iron-plate",
+    # Incense (314-320)
+    314:"odd-incense",    315:"rock-incense",    316:"full-incense",
+    317:"wave-incense",   318:"rose-incense",    319:"luck-incense",
+    320:"pure-incense",
+    # Evolution-trigger held items (321-327)
+    321:"protector",      322:"electirizer",     323:"magmarizer",
+    324:"dubious-disc",   325:"reaper-cloth",    326:"razor-claw",
+    327:"razor-fang",
+    # Orbs (non-sequential internal IDs)
+    112:"adamant-orb",    113:"lustrous-orb",    135:"adamant-orb",
+    136:"lustrous-orb",
 }
 
 # Gen 3 internal species index -> National Dex number
@@ -473,17 +561,21 @@ GEN3_INTERNAL_TO_NATIONAL = {
 }
 
 def translate_item_id(item_id: int, generation: int):
-    """Translate a Gen2/3 internal item ID to a PokéAPI-compatible identifier.
-    Returns the item_id unchanged for Gen4+ (direct PokéAPI match).
-    Returns a slug string for Gen2/3, or None if unknown."""
+    """Translate a generation-internal item ID to a PokéAPI-compatible identifier.
+    Returns a slug string for all generations, or None if unknown/no item.
+    Gen 5-7 item IDs also differ from PokéAPI but no verified table exists yet —
+    returns None (no item shown) rather than showing the wrong item."""
     if generation <= 1 or item_id == 0:
         return None
     if generation == 2:
         return GEN2_ITEM_SLUGS.get(item_id, None)
     if generation == 3:
         return GEN3_ITEM_SLUGS.get(item_id, None)
-    # Gen 4-7: IDs match PokéAPI directly
-    return item_id
+    if generation == 4:
+        return GEN4_ITEM_SLUGS.get(item_id, None)
+    # Gen 5-7: item IDs also differ from PokéAPI (unverified offsets).
+    # Return None rather than risk displaying wrong item names.
+    return None
 
 
 def enrich_moves(move_ids: list, cache: dict) -> list:
@@ -1213,6 +1305,8 @@ def parse_pk4(raw: bytes) -> dict:
         16:  EXP (uint32)
         20:  friendship (uint8)
         22:  ability index (uint8)
+        24:  EVs — HP/ATK/DEF/SPE/SPA/SPD (6 × uint8)
+        30:  Contest condition bytes (Cool/Beauty/Cute/Smart/Tough/Sheen) — NOT EVs
       Block B (40-71):
         40:  moves 1-4 (4 × uint16)
         48:  PP 1-4 (4 × uint8)
@@ -1247,8 +1341,11 @@ def parse_pk4(raw: bytes) -> dict:
 
     nickname   = decode_gen4_string(raw[72:], 11)
     ot_name    = decode_gen4_string(raw[104:], 7)
-    ev_hp  = raw[30]; ev_atk = raw[31]; ev_def = raw[32]
-    ev_spd = raw[33]; ev_spa = raw[34]; ev_spd2= raw[35]
+    # EVs are in Block A at offsets 0x18-0x1D (file offsets 24-29).
+    # Offsets 30-35 (0x1E-0x23) are contest condition bytes — NOT EVs.
+    # Confirmed against real HGSS Tyranitar file: raw[24:30]=[33,68,84,128,98,51] ✓
+    ev_hp  = raw[24]; ev_atk = raw[25]; ev_def = raw[26]
+    ev_spd = raw[27]; ev_spa = raw[28]; ev_spd2= raw[29]
 
     iv_raw     = struct.unpack_from('<I', raw, 128)[0]
     iv_hp      = (iv_raw >> 0)  & 0x1F
