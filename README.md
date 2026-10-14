@@ -1,4 +1,4 @@
-﻿![HexDex banner](assets/banner.svg)
+![HexDex banner](docs/images/banner.svg)
 
 # HexDex
 
@@ -21,19 +21,31 @@ Supports `.pk1` through `.pk7` files, covering Generations 1–7. HexDex views e
 
 ### Collection view
 
-![HexDex collection view](assets/Screenshot%2001.jpg)
+![HexDex collection view](docs/images/collection-view.jpg)
 
 ### Detail view
 
-![HexDex detail view](assets/Screenshot%2002.jpg)
+![HexDex detail view](docs/images/detail-view.jpg)
 
 ## Getting HexDex
 
-The project is moving to **GitHub Actions builds** for Windows downloads, replacing local executable builds.
+GitHub Actions builds downloadable packages for **Windows (x64), Linux (x64), and macOS (Apple Silicon only)**.
 
-An Actions workflow has not yet been added to this checkout. Once automated builds are configured, this section will be updated with the download location and release process.
+Download the package for your operating system from [GitHub Releases](https://github.com/TariqMK/HexDex/releases/latest), then extract it. New releases are published when the manual build workflow completes successfully.
 
-The Windows package must include both `HexDex.exe` and its accompanying `_internal` folder. Extract the entire package before launching the application. A packaged build includes its Python runtime, so users do not need to install Python separately.
+| Platform | Package | Launch |
+| --- | --- | --- |
+| Windows x64 | `HexDex-vX.Y.Z-windows-x64.zip` | Open `HexDex/HexDex.exe` |
+| Linux x64 | `HexDex-vX.Y.Z-linux-x64.tar.gz` | Run `./HexDex/HexDex` from the extracted directory |
+| macOS Apple Silicon | `HexDex-vX.Y.Z-macos-arm64.zip` | Open `HexDex.app` |
+
+`X.Y.Z` is the release version. Each release also includes `SHA256SUMS.txt` for checking download integrity.
+
+Extract the entire package. Windows and Linux builds need their accompanying `_internal` folder. Packaged builds include their Python runtime, so users do not need to install Python separately.
+
+The macOS package is not signed with an Apple Developer certificate or notarised. macOS may require approval in **System Settings → Privacy & Security** before it can be opened. Intel Macs are not supported by this build.
+
+Linux builds target Ubuntu 22.04 or newer compatible distributions and require a graphical desktop plus the system libraries used by Qt. Other Linux distributions may need additional packages.
 
 ## Using HexDex
 
@@ -73,9 +85,41 @@ The cache, Python environment, and generated executables are excluded from the s
 
 The application uses Python, Flask, and pywebview with the Qt backend. The interface uses HTML, CSS, and JavaScript without a separate frontend build step.
 
-Source changes are intended to be committed to GitHub, with Windows executables built through GitHub Actions once the workflow is configured. Generated build output belongs in downloadable build packages rather than source commits.
+The workflow in `.github/workflows/build.yml` runs **manually only**. Pushing commits or tags does not trigger a build.
 
-Runtime dependencies are listed in `requirements.txt`. Build automation will also need PyInstaller and access to the application templates and icon.
+To publish a release:
+
+1. Commit and push the changes you want to release. The workflow must be present on the repository's default branch for the manual run button to appear.
+2. Open [Actions → Build and release HexDex](https://github.com/TariqMK/HexDex/actions/workflows/build.yml) and click **Run workflow**.
+3. Select the branch to build and choose the version increment:
+   - **Patch** (default): fixes, such as `1.8.2` → `1.8.3`.
+   - **Minor**: compatible new features, such as `1.8.2` → `1.9.0`.
+   - **Major**: breaking changes, such as `1.8.2` → `2.0.0`.
+4. Run the workflow. After all three platform builds succeed, it publishes a versioned GitHub Release with the packages, checksums, and automatically generated release notes.
+
+The workflow calculates the next version from the highest existing stable `vMAJOR.MINOR.PATCH` tag across the repository. With no matching tags, it starts from `0.0.0` before applying the chosen increment. Prerelease and unrelated tags are ignored. The increment is selected explicitly because the workflow cannot reliably infer whether changes are breaking.
+
+Release runs are serialized to avoid duplicate version numbers. The tag points to the exact commit selected for the run. Build failures do not create a release or tag; publication failures may leave a draft that can be resumed by rerunning the failed job. Published releases are never overwritten. Release downloads remain available independently of the temporary Actions artifacts, which are retained for 30 days.
+
+Runtime dependencies are listed in `requirements.txt`. The workflow installs PyInstaller and defines its packaging options directly, including the templates, Qt backend, and application icon. It does not depend on the local spec in the ignored `Meta/` folder. Generated build output belongs in downloadable build packages rather than source commits.
+
+### Repository layout
+
+```text
+HexDex/
+├── app.py                  # Backend, Pokémon parsing, and local storage
+├── launch.py               # Desktop window launcher
+├── requirements.txt        # Runtime dependencies
+├── .github/
+│   └── workflows/
+│       └── build.yml       # Windows, Linux, and Apple Silicon builds
+├── templates/
+│   └── index.html          # Application interface
+├── assets/
+│   └── icons/              # Application icon
+└── docs/
+    └── images/             # README banner and screenshots
+```
 
 ## Credits
 
