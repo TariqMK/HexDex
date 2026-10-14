@@ -144,6 +144,13 @@ jobs:
         run: |
           import subprocess
           import sys
+          from pathlib import Path
+
+          root = Path.cwd().resolve()
+          # Data paths are resolved relative to the generated spec in build/.
+          # Absolute input paths work regardless of the spec's location.
+          templates = root / 'templates'
+          icon = root / 'assets/icons/hexdex_icon.ico'
 
           # Mirrors Meta/HexDex.spec; the ignored Meta folder is not needed in CI.
           command = [
@@ -151,7 +158,7 @@ jobs:
               '--noconfirm', '--clean', '--onedir', '--windowed',
               '--name', 'HexDex',
               '--specpath', 'build',
-              '--add-data', 'templates:templates',
+              '--add-data', f'{templates}:templates',
               '--hidden-import', 'webview.platforms.qt',
               '--hidden-import', 'PyQt6.QtWebEngineWidgets',
               '--hidden-import', 'PyQt6.QtWebChannel',
@@ -160,16 +167,16 @@ jobs:
               '--collect-data', 'webview',
           ]
           if sys.platform == 'win32':
-              command += ['--icon', 'assets/icons/hexdex_icon.ico']
+              command += ['--icon', str(icon)]
           elif sys.platform == 'darwin':
               # Convert the Windows icon for the macOS app bundle.
               from PIL import Image
-              from pathlib import Path
-              Path('build').mkdir(exist_ok=True)
-              with Image.open('assets/icons/hexdex_icon.ico') as image:
-                  image.save('build/hexdex.icns', format='ICNS')
-              command += ['--icon', 'build/hexdex.icns', '--target-arch', 'arm64']
-          command += ['launch.py']
+              mac_icon = root / 'build/hexdex.icns'
+              mac_icon.parent.mkdir(exist_ok=True)
+              with Image.open(icon) as image:
+                  image.save(mac_icon, format='ICNS')
+              command += ['--icon', str(mac_icon), '--target-arch', 'arm64']
+          command += [str(root / 'launch.py')]
           subprocess.run(command, check=True)
 
       - name: Verify and package application
