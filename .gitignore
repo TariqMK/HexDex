@@ -1,0 +1,6 @@
+Meta/
+__pycache__/
+cache/
+dist/
+venv/
+start.bat
