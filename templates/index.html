@@ -19,6 +19,8 @@ body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--text);heigh
 header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:200}
 .logo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.4rem;letter-spacing:3px;color:var(--accent);flex-shrink:0}
 .logo span{color:var(--text-mute)}
+.brand{display:flex;flex-direction:column;gap:1px;flex-shrink:0}
+.build-version{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--text-dim);line-height:1.2;white-space:nowrap;user-select:text}
 .scan-bar{display:flex;align-items:center;gap:8px;flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;transition:border-color .2s}
 .scan-bar:focus-within{border-color:var(--accent)}
 .scan-bar input{flex:1;background:none;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--text)}
@@ -281,7 +283,10 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 <div id="hexdex-tooltip"></div>
 
 <header>
-  <div class="logo">HEXDEX<span>.</span></div>
+  <div class="brand">
+    <div class="logo">HEXDEX<span>.</span></div>
+    <div class="build-version" title="Current HexDex build" aria-label="Current HexDex build: {{ build_version }}">{{ build_version }}</div>
+  </div>
   <div class="scan-bar">
     <span style="color:var(--text-mute);font-size:.8rem;margin-right:4px">📁</span>
     <input id="dirInput" type="text" placeholder="Paste your Pokémon folder path…  e.g. C:\Users\You\Pokemon\MyCollection">

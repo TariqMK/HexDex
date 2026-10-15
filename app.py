@@ -27,6 +27,21 @@ NOTES_FILE    = os.path.join(CACHE_DIR, "notes.json")
 
 os.makedirs(IMAGE_DIR, exist_ok=True)
 
+
+def load_build_version():
+    """Read release metadata bundled by Actions, without labelling local runs as releases."""
+    if not getattr(sys, 'frozen', False):
+        return "Development build"
+    metadata_path = os.path.join(sys._MEIPASS, "build-version.json")
+    try:
+        with open(metadata_path, encoding="utf-8") as metadata_file:
+            version = json.load(metadata_file).get("version")
+        if isinstance(version, str) and version.strip():
+            return f"v{version}"
+    except (OSError, ValueError, AttributeError):
+        pass
+    return "Unknown build"
+
 # ---------------------------------------------------------------------------
 # Notes and tags (keyed by filename - one record per variant file)
 # ---------------------------------------------------------------------------
@@ -1649,7 +1664,7 @@ def scan_directory(directory: str, recursive: bool = False):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", build_version=load_build_version())
 
 @app.route("/cached-image/<filename>")
 def cached_image(filename):

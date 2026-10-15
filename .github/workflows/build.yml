@@ -158,7 +158,11 @@ jobs:
 
       - name: Build application
         shell: python
+        env:
+          BUILD_VERSION: ${{ needs.version.outputs.version }}
         run: |
+          import json
+          import os
           import subprocess
           import sys
           from pathlib import Path
@@ -168,6 +172,9 @@ jobs:
           # Absolute input paths work regardless of the spec's location.
           templates = root / 'templates'
           icon = root / 'assets/icons/hexdex_icon.ico'
+          metadata = root / 'build/build-version.json'
+          metadata.parent.mkdir(exist_ok=True)
+          metadata.write_text(json.dumps({'version': os.environ['BUILD_VERSION']}), encoding='utf-8')
 
           # Mirrors Meta/HexDex.spec; the ignored Meta folder is not needed in CI.
           command = [
@@ -176,6 +183,7 @@ jobs:
               '--name', 'HexDex',
               '--specpath', 'build',
               '--add-data', f'{templates}:templates',
+              '--add-data', f'{metadata}:.',
               '--hidden-import', 'webview.platforms.qt',
               '--hidden-import', 'PyQt6.QtWebEngineWidgets',
               '--hidden-import', 'PyQt6.QtWebChannel',
@@ -217,13 +225,18 @@ jobs:
               bundle = Path('dist/HexDex.app')
               executable = bundle / 'Contents/MacOS/HexDex'
               templates = bundle / 'Contents/Resources/templates/index.html'
+              metadata = bundle / 'Contents/Resources/build-version.json'
           else:
               bundle = Path('dist/HexDex')
               executable = bundle / ('HexDex.exe' if sys.platform == 'win32' else 'HexDex')
               templates = bundle / '_internal/templates/index.html'
-          for required in (executable, templates):
+              metadata = bundle / '_internal/build-version.json'
+          for required in (executable, templates, metadata):
               if not required.is_file():
                   raise FileNotFoundError(required)
+          import json
+          if json.loads(metadata.read_text(encoding='utf-8')).get('version') != version:
+              raise RuntimeError('Bundled version does not match the release version')
           if sys.platform == 'darwin':
               architectures = subprocess.check_output(
                   ['lipo', '-archs', str(executable)], text=True
