@@ -32,13 +32,16 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .btn-ghost:hover{border-color:var(--text-dim);color:var(--text)}
 .header-stats{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--text-mute);white-space:nowrap}
 .header-stats b{color:var(--green)}
-.scan-progress{flex-shrink:0;padding:6px 20px;background:var(--surface);border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-dim)}
+.scan-progress{flex-shrink:0;width:min(520px,100%);margin:20px auto 0;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-dim);text-align:left}
 .scan-progress[hidden]{display:none}
 .scan-progress-row{display:flex;align-items:baseline;gap:12px}
 .scan-progress-row span{overflow-wrap:anywhere}
-.scan-progress details{margin-top:3px}
+.scan-progress details{margin-top:8px}
 .scan-progress summary{cursor:pointer;font-size:.65rem;color:var(--text-dim);width:max-content}
-.scan-progress pre{margin-top:5px;max-height:100px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.5}
+.scan-progress pre{margin-top:6px;max-height:86px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.5;color:var(--text-dim)}
+.grid-area.scan-loading{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.scan-loading .poke-grid{display:block;width:100%}
+.scan-loading .empty-state{height:auto;min-height:0}
 
 /* FILTER BAR */
 .filter-bar{display:flex;align-items:center;gap:10px;padding:7px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;z-index:160}
@@ -308,10 +311,6 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
   <div class="header-stats" id="headerStats">—</div>
 </header>
 
-<div class="scan-progress" id="scanProgress" hidden>
-  <div class="scan-progress-row"><span id="scanProgressText" role="status" aria-live="polite">Preparing scan…</span></div>
-  <details><summary>Scan activity</summary><pre id="scanProgressLog"></pre></details>
-</div>
 
 <!-- Bulk tag action bar -->
 <div class="bulk-bar" id="bulkBar">
@@ -410,6 +409,10 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
         <div class="big-icon">🔍</div>
         <p>Enter your Pokémon folder path above and hit SCAN to load your collection.</p>
       </div>
+    </div>
+    <div class="scan-progress" id="scanProgress" hidden>
+      <div class="scan-progress-row"><span id="scanProgressText" role="status" aria-live="polite">Preparing scan…</span></div>
+      <details open><summary>Scan activity</summary><pre id="scanProgressLog"></pre></details>
     </div>
   </div>
 
@@ -632,7 +635,7 @@ async function refreshScanProgress(scanId) {
     const waiting = progress.request_elapsed !== null ? ` · waiting ${progress.request_elapsed}s` : '';
     document.getElementById('scanProgressText').textContent =
       `${progress.completed}/${progress.total} files · ${elapsed} · ${progress.message}${waiting}`;
-    document.getElementById('scanProgressLog').textContent = progress.log.join('\n');
+    document.getElementById('scanProgressLog').textContent = progress.log.slice(-4).join('\n');
   } catch(e) {
     if (scanBusy && currentScanId === scanId)
       document.getElementById('scanProgressText').textContent = 'Waiting for scan response · progress temporarily unavailable';
@@ -655,6 +658,7 @@ async function scanDirectory() {
   document.getElementById('btnScan').disabled = true;
   const scanId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   currentScanId = scanId;
+  document.getElementById('gridArea').classList.add('scan-loading');
   document.getElementById('scanProgress').hidden = false;
   document.getElementById('scanProgressText').textContent = 'Preparing scan…';
   document.getElementById('scanProgressLog').textContent = '';
@@ -690,6 +694,8 @@ async function scanDirectory() {
     activeTags.clear();
     renderActiveTagChips();
     rebuildTagDropdown();
+    document.getElementById('scanProgress').hidden = true;
+    document.getElementById('gridArea').classList.remove('scan-loading');
     applyFilters();
   } catch(e) {
     document.getElementById('scanProgressText').textContent = `Scan could not finish: ${e.message}`;
