@@ -31,7 +31,7 @@ Supports `.pk1` through `.pk7` files, covering Generations 1–7. HexDex views e
 
 GitHub Actions builds downloadable packages for **Windows (x64), Linux (x64), and macOS (Apple Silicon only)**.
 
-Download the package for your operating system from [GitHub Releases](https://github.com/TariqMK/HexDex/releases/latest), then extract it. New releases are published when the manual build workflow completes successfully.
+Download the package for your operating system from [GitHub Releases](https://github.com/TariqMK/HexDex/releases/latest), then extract it. Only published releases are available publicly.
 
 | Platform | Package | Launch |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ The application uses Python, Flask, and pywebview with the Qt backend. The inter
 
 The workflow in `.github/workflows/build.yml` runs **manually only**. Pushing commits or tags does not trigger a build.
 
-To publish a release:
+To build a draft or publish a release:
 
 1. Commit and push the changes you want to release. The workflow must be present on the repository's default branch for the manual run button to appear.
 2. Open [Actions → Build and release HexDex](https://github.com/TariqMK/HexDex/actions/workflows/build.yml) and click **Run workflow**.
@@ -95,11 +95,13 @@ To publish a release:
    - **Patch** (default): fixes, such as `1.8.2` → `1.8.3`.
    - **Minor**: compatible new features, such as `1.8.2` → `1.9.0`.
    - **Major**: breaking changes, such as `1.8.2` → `2.0.0`.
-4. Run the workflow. After all three platform builds succeed, it publishes a versioned GitHub Release with the packages, checksums, and automatically generated release notes.
+4. Choose **draft** (default) to test before publishing, or **public** to publish automatically after a successful build.
+5. Run the workflow. After all three platform builds succeed, it creates a versioned GitHub Release with the packages, checksums, and automatically generated release notes.
+6. For a draft, open it from the workflow summary or Releases page, test the packages, then edit the notes and click **Publish release** when ready.
 
-The workflow calculates the next version from the highest existing stable `vMAJOR.MINOR.PATCH` tag across the repository. With no matching tags, it starts from `0.0.0` before applying the chosen increment. Prerelease and unrelated tags are ignored. The increment is selected explicitly because the workflow cannot reliably infer whether changes are breaking.
+The workflow calculates the next version from the highest existing stable `vMAJOR.MINOR.PATCH` version across repository tags and releases, including drafts. Drafts reserve their version so the next build receives a new number. With no matching tags, it starts from `0.0.0` before applying the chosen increment. Prerelease and unrelated tags are ignored. The increment is selected explicitly because the workflow cannot reliably infer whether changes are breaking.
 
-Release runs are serialized to avoid duplicate version numbers. The tag points to the exact commit selected for the run. Build failures do not create a release or tag; publication failures may leave a draft that can be resumed by rerunning the failed job. Published releases are never overwritten. Release downloads remain available independently of the temporary Actions artifacts, which are retained for 30 days.
+Release runs are serialized to avoid duplicate version numbers. The tag points to the exact commit selected for the run. Build failures do not create a release or tag; publication failures may leave a draft that can be resumed by rerunning the failed job. Published releases are never overwritten. Draft releases are visible to repository users with write access; source code and Actions logs remain public in a public repository. Published release downloads remain available independently of the temporary Actions artifacts, which are retained for 30 days.
 
 Runtime dependencies are listed in `requirements.txt`. The workflow installs PyInstaller and defines its packaging options directly, including the templates, Qt backend, and application icon. It does not depend on the local spec in the ignored `Meta/` folder. Generated build output belongs in downloadable build packages rather than source commits.
 

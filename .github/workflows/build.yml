@@ -12,6 +12,14 @@ on:
           - patch
           - minor
           - major
+      release_mode:
+        description: 'Draft for testing, or publish publicly after a successful build'
+        type: choice
+        required: true
+        default: draft
+        options:
+          - draft
+          - public
 
 permissions:
   contents: read
@@ -40,6 +48,8 @@ jobs:
         shell: python3 {0}
         env:
           VERSION_BUMP: ${{ inputs.bump }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           import os
           import re
@@ -64,6 +74,13 @@ jobs:
               return f'{major}.{minor}.{patch}'
 
           tags = subprocess.check_output(['git', 'tag', '--list'], text=True).splitlines()
+          # Drafts can reserve versions before their Git tags exist.
+          release_tags = subprocess.check_output([
+              'gh', 'api', '--paginate',
+              f'repos/{os.environ["GH_REPO"]}/releases?per_page=100',
+              '--jq', '.[].tag_name',
+          ], text=True).splitlines()
+          tags.extend(release_tags)
           version = next_version(tags, os.environ['VERSION_BUMP'])
           with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as output:
               output.write(f'version={version}\ntag=v{version}\n')
@@ -236,7 +253,7 @@ jobs:
           retention-days: 30
 
   release:
-    name: Publish GitHub Release
+    name: Create GitHub Release
     # The default success condition requires all three builds to succeed.
     needs: [version, build]
     runs-on: ubuntu-22.04
@@ -255,7 +272,7 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      - name: Publish complete release
+      - name: Create complete release
         shell: python
         env:
           GH_TOKEN: ${{ github.token }}
@@ -263,6 +280,7 @@ jobs:
           RELEASE_VERSION: ${{ needs.version.outputs.version }}
           RELEASE_TAG: ${{ needs.version.outputs.tag }}
           RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
         run: |
           import hashlib
           import json
@@ -273,6 +291,9 @@ jobs:
           version = os.environ['RELEASE_VERSION']
           tag = os.environ['RELEASE_TAG']
           commit = os.environ['RELEASE_COMMIT']
+          mode = os.environ['RELEASE_MODE']
+          if mode not in ('draft', 'public'):
+              raise ValueError(f'Unknown release mode: {mode}')
           assets_dir = Path('release-assets')
           packages = [assets_dir / f'HexDex-v{version}-{target}{extension}' for target, extension in (
               ('windows-x64', '.zip'), ('linux-x64', '.tar.gz'), ('macos-arm64', '.zip'),
@@ -303,7 +324,6 @@ jobs:
               else:
                   # A failed publish can resume its own draft without altering a published release.
                   subprocess.run(['gh', 'release', 'upload', tag, *assets, '--clobber'], check=True)
-                  subprocess.run(['gh', 'release', 'edit', tag, '--draft=false', '--latest'], check=True)
           else:
               # Reject an existing tag, even if it has no release. Never retag a version.
               ref = subprocess.run(
@@ -318,7 +338,14 @@ jobs:
                   '--target', commit, '--title', f'HexDex {tag}',
                   '--notes', marker, '--generate-notes',
               ], check=True)
+          if mode == 'public' and (existing.returncode != 0 or release['isDraft']):
               subprocess.run(['gh', 'release', 'edit', tag, '--draft=false', '--latest'], check=True)
-          url = subprocess.check_output(['gh', 'release', 'view', tag, '--json', 'url', '--jq', '.url'], text=True).strip()
+          result = json.loads(subprocess.check_output([
+              'gh', 'release', 'view', tag, '--json', 'url,isDraft',
+          ], text=True))
+          status = 'Draft release ready for testing' if result['isDraft'] else 'Release published'
+          url = result['url']
           with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a', encoding='utf-8') as summary:
-              summary.write(f'## Release published\n\n[Download HexDex {tag}]({url})\n')
+              summary.write(f'## {status}\n\n[Open HexDex {tag}]({url})\n')
+              if result['isDraft']:
+                  summary.write('\nTest the attached packages, then edit the notes and click **Publish release** in GitHub when ready.\n')
