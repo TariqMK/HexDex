@@ -16,6 +16,8 @@ Supports `.pk1` through `.pk7` files, covering Generations 1–7. HexDex views e
 - Scan subfolders and export collection data to CSV.
 - Follow generation-specific links to Serebii for more information.
 - Reuse locally cached Pokémon data and artwork after the initial download.
+- Follow scan progress in a compact activity panel beneath the loading message.
+- Find the installed build version beneath the HEXDEX logo.
 
 ## Screenshots
 
@@ -56,6 +58,18 @@ Linux builds target Ubuntu 22.04 or newer compatible distributions and require a
 5. Use the search and filters to browse your collection, then click a card to see its details.
 
 Previously cached information and artwork can be used offline. Scanning Pokémon whose information has not been cached still requires an internet connection. Serebii links also require internet access.
+
+### Scan progress
+
+During a scan, a small panel appears beneath the loading message in the centre of the collection area. It updates about once a second with files processed, elapsed time, and the current download, including how long the request has been waiting.
+
+**Scan activity** shows the four most recent events, including download failures. You can collapse it for a quieter display. The panel disappears when the collection loads and remains visible if the scan fails.
+
+First scans can take longer because HexDex downloads species information, moves, abilities, evolution chains, and artwork sequentially. The file count advances when each file finishes processing, so it may pause while several downloads complete for one Pokémon. The SCAN button is disabled during a scan to prevent overlapping scans.
+
+### Build version
+
+The small label beneath the **HEXDEX** logo shows the packaged release version, for example `v1.8.5`. Local Python runs show **Development build**. Draft and public packages carry the same version; publishing a draft does not change its contents.
 
 ### Notes, tags, and favourites
 
@@ -104,6 +118,10 @@ The workflow calculates the next version from the highest existing stable `vMAJO
 Release runs are serialized to avoid duplicate version numbers. The tag points to the exact commit selected for the run. Build failures do not create a release or tag; publication failures may leave a draft that can be resumed by rerunning the failed job. Published releases are never overwritten. Draft releases are visible to repository users with write access; source code and Actions logs remain public in a public repository. Published release downloads remain available independently of the temporary Actions artifacts, which are retained for 30 days.
 
 Runtime dependencies are listed in `requirements.txt`. The workflow installs PyInstaller and defines its packaging options directly, including the templates, Qt backend, and application icon. It does not depend on the local spec in the ignored `Meta/` folder. Generated build output belongs in downloadable build packages rather than source commits.
+
+Actions embeds the calculated version in `build-version.json` and checks that it matches the release version before packaging. Both version calculation and release creation have the repository permission needed to see draft releases; platform build jobs retain read-only repository access.
+
+For local development checks, run `venv\Scripts\python.exe launch.py` on Windows (or use the local `start.bat`). This exercises the desktop interface, but packaged downloads still need testing on their target operating systems before publishing.
 
 ### Repository layout
 
