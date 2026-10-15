@@ -33,6 +33,10 @@ jobs:
   version:
     name: Calculate release version
     runs-on: ubuntu-22.04
+    permissions:
+      # GitHub only includes drafts when the token has repository push access.
+      # This job performs read-only API calls despite needing that permission.
+      contents: write
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -81,6 +85,7 @@ jobs:
               '--jq', '.[].tag_name',
           ], text=True).splitlines()
           tags.extend(release_tags)
+          print(f'Considering {len(release_tags)} release versions (including accessible drafts) and repository tags')
           version = next_version(tags, os.environ['VERSION_BUMP'])
           with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as output:
               output.write(f'version={version}\ntag=v{version}\n')
