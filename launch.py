@@ -21,7 +21,7 @@ PORT = 5000
 
 def run_flask():
     """Start Flask in a background thread with no reloader."""
-    flask_app.app.run(port=PORT, debug=False, use_reloader=False)
+    flask_app.app.run(port=PORT, debug=False, use_reloader=False, threaded=True)
 
 if __name__ == "__main__":
     # Start Flask in a background daemon thread

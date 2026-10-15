@@ -3,6 +3,9 @@ import sys
 import json
 import struct
 import time
+import threading
+from collections import deque
+from urllib.parse import urlparse
 import requests
 from flask import Flask, jsonify, request, render_template
 
@@ -26,6 +29,40 @@ IMAGE_DIR     = os.path.join(CACHE_DIR, "images")
 NOTES_FILE    = os.path.join(CACHE_DIR, "notes.json")
 
 os.makedirs(IMAGE_DIR, exist_ok=True)
+
+# Read-only progress polling runs alongside one scan; cache writes stay sequential.
+SCAN_LOCK = threading.Lock()
+PROGRESS_LOCK = threading.Lock()
+SCAN_CONTEXT = threading.local()
+SCAN_PROGRESS = {"scan_id": None, "running": False, "completed": 0, "total": 0,
+                 "started": None, "finished": None, "message": "", "request_started": None}
+SCAN_LOG = deque(maxlen=12)
+
+
+def scan_progress(message=None, **updates):
+    if not getattr(SCAN_CONTEXT, "active", False):
+        return
+    with PROGRESS_LOCK:
+        SCAN_PROGRESS.update(updates)
+        if message is not None:
+            SCAN_PROGRESS["message"] = message
+            SCAN_LOG.append(f'{time.strftime("%H:%M:%S")}  {message}')
+
+
+def fetch_with_progress(url, **kwargs):
+    """Report the existing bounded request without changing scan ordering."""
+    path = urlparse(url).path
+    label = path.split('/api/v2/')[-1].strip('/') if '/api/v2/' in path else f'artwork {os.path.basename(path)}'
+    started = time.monotonic()
+    scan_progress(f'Fetching {label}', request_started=started)
+    try:
+        response = requests.get(url, **kwargs)
+        response.raise_for_status()
+    except requests.RequestException as error:
+        scan_progress(f'{label}: {type(error).__name__}; continuing without this download', request_started=None)
+        raise
+    scan_progress(f'Received {label} ({time.monotonic() - started:.1f}s)', request_started=None)
+    return response
 
 
 def load_build_version():
@@ -84,7 +121,7 @@ def cache_image(url: str, filename: str) -> str:
     local_path = os.path.join(IMAGE_DIR, filename)
     if not os.path.exists(local_path):
         try:
-            r = requests.get(url, timeout=15)
+            r = fetch_with_progress(url, timeout=15)
             r.raise_for_status()
             with open(local_path, "wb") as f:
                 f.write(r.content)
@@ -100,12 +137,12 @@ def fetch_pokemon_data(species_id, cache):
 
     try:
         # Main pokemon endpoint (types, sprites, abilities, stats, moves)
-        r1 = requests.get(f"{POKEAPI_BASE}/pokemon/{species_id}", timeout=10)
+        r1 = fetch_with_progress(f"{POKEAPI_BASE}/pokemon/{species_id}", timeout=10)
         r1.raise_for_status()
         poke = r1.json()
 
         # Species endpoint (flavour text, genus, gender rate)
-        r2 = requests.get(f"{POKEAPI_BASE}/pokemon-species/{species_id}", timeout=10)
+        r2 = fetch_with_progress(f"{POKEAPI_BASE}/pokemon-species/{species_id}", timeout=10)
         r2.raise_for_status()
         species = r2.json()
 
@@ -174,7 +211,7 @@ def fetch_move_data(move_id: int, cache: dict) -> dict | None:
         return cache[key]
 
     try:
-        r = requests.get(f"{POKEAPI_BASE}/move/{move_id}", timeout=10)
+        r = fetch_with_progress(f"{POKEAPI_BASE}/move/{move_id}", timeout=10)
         r.raise_for_status()
         m = r.json()
 
@@ -228,7 +265,7 @@ def fetch_ability_data(ability_name: str, cache: dict) -> dict | None:
     if key in cache:
         return cache[key]
     try:
-        r = requests.get(f"{POKEAPI_BASE}/ability/{ability_name}", timeout=10)
+        r = fetch_with_progress(f"{POKEAPI_BASE}/ability/{ability_name}", timeout=10)
         r.raise_for_status()
         a = r.json()
 
@@ -614,7 +651,7 @@ def fetch_item_data(item_id, cache: dict) -> dict | None:
     if key in cache:
         return cache[key]
     try:
-        r = requests.get(f"{POKEAPI_BASE}/item/{item_id}", timeout=10)
+        r = fetch_with_progress(f"{POKEAPI_BASE}/item/{item_id}", timeout=10)
         r.raise_for_status()
         it = r.json()
 
@@ -654,11 +691,11 @@ def fetch_evo_chain(species_id: int, cache: dict) -> list:
 
     try:
         # Get species to find evo chain URL
-        r1 = requests.get(f"{POKEAPI_BASE}/pokemon-species/{species_id}", timeout=10)
+        r1 = fetch_with_progress(f"{POKEAPI_BASE}/pokemon-species/{species_id}", timeout=10)
         r1.raise_for_status()
         chain_url = r1.json()["evolution_chain"]["url"]
 
-        r2 = requests.get(chain_url, timeout=10)
+        r2 = fetch_with_progress(chain_url, timeout=10)
         r2.raise_for_status()
         chain_data = r2.json()["chain"]
 
@@ -1556,7 +1593,9 @@ def scan_directory(directory: str, recursive: bool = False):
             if ext in VALID_EXTS:
                 all_files.append((fname, fpath))
 
-    for fname, fpath in all_files:
+    scan_progress(f'Found {len(all_files)} Pokémon files', total=len(all_files))
+    for position, (fname, fpath) in enumerate(all_files, 1):
+        scan_progress(f'Reading {fname}', completed=position - 1)
 
         try:
             ext = os.path.splitext(fname)[1].lower()
@@ -1655,6 +1694,9 @@ def scan_directory(directory: str, recursive: bool = False):
 
         except Exception as e:
             errors.append({"file": fname, "reason": str(e)})
+            scan_progress(f'Could not load {fname}: {type(e).__name__}')
+        finally:
+            scan_progress(completed=position)
 
     return results, errors
 
@@ -1743,8 +1785,36 @@ def api_scan():
     if not os.path.isdir(directory):
         return jsonify({"error": f"Directory not found: {directory}"}), 404
 
-    pokemon, errors = scan_directory(directory, recursive)
-    return jsonify({"pokemon": pokemon, "errors": errors, "count": len(pokemon)})
+    if not SCAN_LOCK.acquire(blocking=False):
+        return jsonify({"error": "A scan is already running. Please wait for it to finish."}), 409
+    SCAN_CONTEXT.active = True
+    with PROGRESS_LOCK:
+        SCAN_LOG.clear()
+        SCAN_PROGRESS.update(scan_id=body.get("scan_id"), running=True, completed=0,
+                             total=0, started=time.monotonic(), finished=None, request_started=None)
+    try:
+        scan_progress('Finding Pokémon files…')
+        pokemon, errors = scan_directory(directory, recursive)
+        scan_progress(f'Finished: {len(pokemon)} loaded, {len(errors)} file errors')
+        return jsonify({"pokemon": pokemon, "errors": errors, "count": len(pokemon)})
+    except Exception as error:
+        scan_progress(f'Scan failed: {type(error).__name__}')
+        raise
+    finally:
+        scan_progress(running=False, finished=time.monotonic(), request_started=None)
+        SCAN_CONTEXT.active = False
+        SCAN_LOCK.release()
+
+
+@app.route("/api/scan-progress")
+def get_scan_progress():
+    with PROGRESS_LOCK:
+        progress = dict(SCAN_PROGRESS)
+        progress["log"] = list(SCAN_LOG)
+    now = time.monotonic()
+    progress["elapsed"] = round((progress["finished"] or now) - progress["started"]) if progress["started"] else 0
+    progress["request_elapsed"] = round(now - progress["request_started"]) if progress["request_started"] else None
+    return jsonify(progress)
 
 @app.route("/api/cache-info")
 def cache_info():

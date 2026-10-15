@@ -32,6 +32,13 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
 .btn-ghost:hover{border-color:var(--text-dim);color:var(--text)}
 .header-stats{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--text-mute);white-space:nowrap}
 .header-stats b{color:var(--green)}
+.scan-progress{flex-shrink:0;padding:6px 20px;background:var(--surface);border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-dim)}
+.scan-progress[hidden]{display:none}
+.scan-progress-row{display:flex;align-items:baseline;gap:12px}
+.scan-progress-row span{overflow-wrap:anywhere}
+.scan-progress details{margin-top:3px}
+.scan-progress summary{cursor:pointer;font-size:.65rem;color:var(--text-dim);width:max-content}
+.scan-progress pre{margin-top:5px;max-height:100px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.5}
 
 /* FILTER BAR */
 .filter-bar{display:flex;align-items:center;gap:10px;padding:7px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;z-index:160}
@@ -295,11 +302,16 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
   <label class="shiny-toggle" style="font-size:.75rem;white-space:nowrap">
     <input type="checkbox" id="scanRecursive"> Subfolders
   </label>
-  <button class="btn btn-accent" onclick="scanDirectory()">SCAN</button>
+  <button class="btn btn-accent" id="btnScan" onclick="scanDirectory()">SCAN</button>
   <button class="btn btn-ghost" onclick="exportCSV()" title="Export collection to CSV">⬇ CSV</button>
   <button class="btn btn-ghost btn-select" id="btnSelect" onclick="toggleSelectMode()" title="Select multiple Pokémon to bulk tag">Select</button>
   <div class="header-stats" id="headerStats">—</div>
 </header>
+
+<div class="scan-progress" id="scanProgress" hidden>
+  <div class="scan-progress-row"><span id="scanProgressText" role="status" aria-live="polite">Preparing scan…</span></div>
+  <details><summary>Scan activity</summary><pre id="scanProgressLog"></pre></details>
+</div>
 
 <!-- Bulk tag action bar -->
 <div class="bulk-bar" id="bulkBar">
@@ -606,9 +618,46 @@ async function browseDirectory() {
 }
 
 // ── Scan ──────────────────────────────────────────────────────────
+let scanBusy = false, scanProgressTimer = null, currentScanId = null;
+
+async function refreshScanProgress(scanId) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+  try {
+    const response = await fetch('/api/scan-progress', {cache:'no-store', signal:controller.signal});
+    if (!response.ok) throw new Error('Progress unavailable');
+    const progress = await response.json();
+    if (currentScanId !== scanId || progress.scan_id !== scanId) return;
+    const elapsed = `${Math.floor(progress.elapsed / 60)}m ${progress.elapsed % 60}s`;
+    const waiting = progress.request_elapsed !== null ? ` · waiting ${progress.request_elapsed}s` : '';
+    document.getElementById('scanProgressText').textContent =
+      `${progress.completed}/${progress.total} files · ${elapsed} · ${progress.message}${waiting}`;
+    document.getElementById('scanProgressLog').textContent = progress.log.join('\n');
+  } catch(e) {
+    if (scanBusy && currentScanId === scanId)
+      document.getElementById('scanProgressText').textContent = 'Waiting for scan response · progress temporarily unavailable';
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function pollScanProgress(scanId) {
+  await refreshScanProgress(scanId);
+  if (scanBusy && currentScanId === scanId)
+    scanProgressTimer = setTimeout(() => pollScanProgress(scanId), 1000);
+}
+
 async function scanDirectory() {
+  if (scanBusy) return;
   let dir = document.getElementById('dirInput').value.trim();
   if (!dir){alert('Please enter a folder path first.');return}
+  scanBusy = true;
+  document.getElementById('btnScan').disabled = true;
+  const scanId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  currentScanId = scanId;
+  document.getElementById('scanProgress').hidden = false;
+  document.getElementById('scanProgressText').textContent = 'Preparing scan…';
+  document.getElementById('scanProgressLog').textContent = '';
   // Normalise slashes — Windows paths use \ but either works on Python's os.path
   dir = dir.replace(/\\/g, '/');
   currentDir = dir;
@@ -618,15 +667,17 @@ async function scanDirectory() {
      <p>Scanning and fetching Pokémon data…<br>First run downloads images to cache.</p></div>`;
   document.getElementById('headerStats').innerHTML = '…';
   closePanel();
+  pollScanProgress(scanId);
   try {
     const recursive = document.getElementById('scanRecursive').checked;
     const res = await fetch('/api/scan', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({dir, recursive})
+      body: JSON.stringify({dir, recursive, scan_id:scanId})
     });
     const data = await res.json();
     if (data.error){
+      document.getElementById('scanProgressText').textContent = data.error;
       document.getElementById('pokeGrid').innerHTML =
         `<div class="empty-state" style="grid-column:1/-1"><div class="big-icon">⚠️</div><p>${data.error}</p></div>`;
       return;
@@ -641,8 +692,14 @@ async function scanDirectory() {
     rebuildTagDropdown();
     applyFilters();
   } catch(e) {
+    document.getElementById('scanProgressText').textContent = `Scan could not finish: ${e.message}`;
     document.getElementById('pokeGrid').innerHTML =
       `<div class="empty-state" style="grid-column:1/-1"><div class="big-icon">💥</div><p>${e.message}</p></div>`;
+  } finally {
+    scanBusy = false;
+    clearTimeout(scanProgressTimer);
+    await refreshScanProgress(scanId);
+    document.getElementById('btnScan').disabled = false;
   }
 }
 
