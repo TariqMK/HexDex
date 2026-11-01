@@ -3,336 +3,373 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PokéDex</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+<title>HexDex</title>
 <style>
-:root {
-  --bg:#0a0c10; --surface:#111318; --surface2:#181c24; --surface3:#1f2430;
-  --border:#2a3040; --accent:#e8304a; --text:#e8eaf0; --text-dim:#8892a4;
-  --text-mute:#4a5568; --green:#39d98a; --yellow:#f5c842; --panel-w:540px;
+/* ── Tokens ──────────────────────────────────────────────────────
+   Graphite ramp, one accent. Type colours appear only in the
+   detail hero, the stat hexagon and type/move dots. System fonts
+   only, so packaged builds look the same offline. */
+:root{
+  --deep:#0f0f10; --bg:#141415; --card:#19191b; --raised:#232325; --raised-2:#2b2b2e;
+  --line:rgba(237,237,237,.08); --line-strong:rgba(237,237,237,.14);
+  --text:#ededed; --text-2:#a1a1a6; --text-3:#85858b;
+  --accent:#d42a42; --accent-hover:#c02339; --accent-ink:#ff6b7d; --on-accent:#fff;
+  --fav:#e8b23a; --positive:#4cc38a;
+  --shadow:0 8px 24px rgba(0,0,0,.4);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --ui:system-ui,-apple-system,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono","Cascadia Code",Consolas,"Liberation Mono",monospace;
+  --panel-w:448px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --deep:#f4f4f5; --bg:#fafafa; --card:#ffffff; --raised:#f4f4f5; --raised-2:#ececee;
+    --line:rgba(23,23,23,.08); --line-strong:rgba(23,23,23,.14);
+    --text:#171717; --text-2:#525252; --text-3:#737373;
+    --accent-ink:#b8213a; --fav:#b7801a; --positive:#16a34a;
+    --shadow:0 8px 24px rgba(0,0,0,.08);
+    color-scheme:light;
+  }
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+body{font-family:var(--ui);font-size:14px;line-height:20px;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.icon{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-/* HEADER */
-header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:200}
-.logo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.4rem;letter-spacing:3px;color:var(--accent);flex-shrink:0}
-.logo span{color:var(--text-mute)}
-.brand{display:flex;flex-direction:column;gap:1px;flex-shrink:0}
-.build-version{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--text-dim);line-height:1.2;white-space:nowrap;user-select:text}
-.scan-bar{display:flex;align-items:center;gap:8px;flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;transition:border-color .2s}
-.scan-bar:focus-within{border-color:var(--accent)}
-.scan-bar input{flex:1;background:none;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--text)}
-.scan-bar input::placeholder{color:var(--text-mute)}
-.btn{padding:6px 16px;border:none;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.88rem;letter-spacing:1px;cursor:pointer;transition:all .15s}
-.btn-accent{background:var(--accent);color:#fff}
-.btn-accent:hover{background:#ff4460;transform:translateY(-1px)}
-.btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
-.btn-ghost:hover{border-color:var(--text-dim);color:var(--text)}
-.header-stats{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--text-mute);white-space:nowrap}
-.header-stats b{color:var(--green)}
-.scan-progress{flex-shrink:0;width:min(520px,100%);margin:20px auto 0;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-dim);text-align:left}
+/* ── Controls ───────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:500;white-space:nowrap;flex:none;
+  transition:background-color .15s var(--ease),border-color .15s var(--ease),color .15s var(--ease),transform .12s var(--ease)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:default;transform:none}
+.btn-accent{background:var(--accent);color:var(--on-accent);padding:0 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+.btn-accent:hover:not(:disabled){background:var(--accent-hover)}
+.btn-ghost{background:var(--raised);border:1px solid var(--line);color:var(--text)}
+.btn-ghost:hover{background:var(--raised-2);border-color:var(--line-strong)}
+.btn-quiet{color:var(--text-2)}
+.btn-quiet:hover{background:var(--raised);color:var(--text)}
+.btn-quiet .icon{color:var(--text-3)}
+.btn-select.selecting{background:var(--raised);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent)}
+.icon-btn{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;color:var(--text-3);flex:none;text-decoration:none;
+  transition:background-color .15s var(--ease),color .15s var(--ease)}
+.icon-btn:hover{background:var(--raised);color:var(--text)}
+
+.field{display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;background:var(--raised);border:1px solid var(--line);border-radius:8px;color:var(--text-3);transition:border-color .15s var(--ease)}
+.field:focus-within{border-color:var(--line-strong)}
+.field input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text)}
+.field input::placeholder{color:var(--text-3)}
+.check{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer;user-select:none;white-space:nowrap;flex:none}
+.check input{accent-color:var(--accent);width:14px;height:14px}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+header{display:flex;align-items:center;gap:12px;height:56px;padding:0 24px;background:var(--deep);border-bottom:1px solid var(--line);flex-shrink:0;z-index:200}
+.brand{display:flex;align-items:center;gap:8px;margin-right:12px;flex-shrink:0}
+.brand-mark{width:20px;height:20px;color:var(--accent)}
+.logo{font-size:16px;font-weight:600}
+.build-version{font-family:var(--mono);font-size:12px;color:var(--text-3);white-space:nowrap;user-select:text}
+.scan-bar{flex:1;max-width:720px}
+.scan-bar input{font-family:var(--mono);font-size:13px}
+.header-gap{flex:1}
+
+/* ── Scan progress ──────────────────────────────────────────────── */
+.scan-progress{flex-shrink:0;width:min(520px,100%);margin:24px auto 0;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:12px;line-height:16px;color:var(--text-2);text-align:left}
 .scan-progress[hidden]{display:none}
-.scan-progress-row{display:flex;align-items:baseline;gap:12px}
+.scan-progress-row{display:flex;align-items:baseline;gap:12px;font-family:var(--mono);font-variant-numeric:tabular-nums}
 .scan-progress-row span{overflow-wrap:anywhere}
 .scan-progress details{margin-top:8px}
-.scan-progress summary{cursor:pointer;font-size:.65rem;color:var(--text-dim);width:max-content}
-.scan-progress pre{margin-top:6px;max-height:86px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.5;color:var(--text-dim)}
+.scan-progress summary{cursor:pointer;color:var(--text-3);width:max-content}
+.scan-progress pre{margin-top:8px;max-height:88px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mono);line-height:1.5;color:var(--text-3)}
 .grid-area.scan-loading{display:flex;flex-direction:column;align-items:center;justify-content:center}
 .scan-loading .poke-grid{display:block;width:100%}
 .scan-loading .empty-state{height:auto;min-height:0}
 
-/* FILTER BAR */
-.filter-bar{display:flex;align-items:center;gap:10px;padding:7px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;z-index:160}
-.filter-label{font-size:.68rem;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;font-family:'Rajdhani',sans-serif}
-.filter-search{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;outline:none;transition:border-color .2s;cursor:pointer;width:150px}
-.filter-search:focus{border-color:var(--accent)}
-.custom-sel-wrap{position:relative;display:inline-block}
-.custom-sel-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;outline:none;cursor:pointer;white-space:nowrap;transition:border-color .2s}
-.custom-sel-btn:hover,.custom-sel-btn.open{border-color:var(--accent)}
-.custom-sel-drop{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;z-index:400;min-width:100%;max-height:260px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4)}
-.custom-sel-drop.open{display:block}
-.custom-sel-item{padding:6px 12px;font-family:'Exo 2',sans-serif;font-size:.8rem;color:var(--text-dim);cursor:pointer;white-space:nowrap;transition:background .1s}
-.custom-sel-item:hover{background:var(--surface3);color:var(--text)}
-.custom-sel-item.selected{color:var(--accent)}
-.filter-search::placeholder{color:var(--text-mute)}
-.shiny-toggle{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.8rem;color:var(--text-dim);user-select:none}
-.shiny-toggle input{accent-color:var(--yellow)}
-.shiny-toggle:has(input:checked){color:var(--yellow)}
+/* ── Filter bar ─────────────────────────────────────────────────── */
+.filter-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:48px;padding:8px 24px;background:var(--deep);border-bottom:1px solid var(--line);flex-shrink:0;z-index:160}
+.filter-search{width:200px;flex:none}
+.custom-sel-wrap{position:relative;flex:none}
+.custom-sel-btn{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 10px 0 12px;background:var(--raised);border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--text);white-space:nowrap;transition:border-color .15s var(--ease)}
+.custom-sel-btn .icon{color:var(--text-3)}
+.custom-sel-btn:hover,.custom-sel-btn.open{border-color:var(--line-strong)}
+.custom-sel-drop,.tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:100%;max-height:280px;overflow-y:auto;padding:4px;background:var(--card);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);z-index:400}
+.custom-sel-drop.open,.tag-dropdown.open{display:block;animation:pop .16s var(--ease)}
+@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.custom-sel-item,.tag-dropdown-item{display:flex;align-items:center;height:32px;padding:0 12px;border-radius:6px;font-size:13px;color:var(--text-2);cursor:pointer;white-space:nowrap;transition:background-color .1s var(--ease),color .1s var(--ease)}
+.custom-sel-item:hover,.tag-dropdown-item:hover{background:var(--raised);color:var(--text)}
+.custom-sel-item.selected,.tag-dropdown-item.selected{color:var(--text);font-weight:500}
+.custom-sel-item.selected::after,.tag-dropdown-item.selected::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);margin-left:auto;padding-left:0;flex:none;transform:translateX(4px)}
+.tag-dropdown-empty{padding:8px 12px;font-size:13px;color:var(--text-3)}
+.divider{width:1px;height:20px;background:var(--line-strong);margin:0 4px;flex:none}
 
-/* MAIN */
+/* Toggle chips wrap the real checkboxes, so filter logic is unchanged */
+.chip{position:relative;display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;border:1px solid transparent;font-size:13px;color:var(--text-2);cursor:pointer;user-select:none;white-space:nowrap;flex:none;
+  transition:background-color .15s var(--ease),border-color .15s var(--ease),color .15s var(--ease)}
+.chip input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.chip .icon{color:var(--text-3)}
+.chip:hover{background:var(--raised);color:var(--text)}
+.chip:has(input:checked),.chip.on{background:var(--raised);border-color:var(--line-strong);color:var(--text)}
+.chip:has(input:checked) .icon{color:var(--text)}
+.chip.fav:has(input:checked) .icon{color:var(--fav);fill:var(--fav)}
+.chip:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.tag-filter-wrap{position:relative;display:flex;align-items:center;gap:8px;flex:none}
+.tag-active-chips{display:flex;flex-wrap:wrap;gap:4px}
+.tag-filter-chip{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:6px;background:var(--raised);border:1px solid var(--line-strong);font-size:12px;color:var(--text);cursor:pointer;white-space:nowrap}
+.tag-filter-chip:hover{border-color:var(--text-3)}
+.tag-filter-chip .icon{width:12px;height:12px;color:var(--text-3)}
+.header-stats{font-family:var(--mono);font-size:12px;color:var(--text-3);white-space:nowrap;margin:0 8px;font-variant-numeric:tabular-nums}
+.header-stats .err{color:var(--accent-ink)}
+
+/* ── Main ───────────────────────────────────────────────────────── */
 .main{flex:1;overflow:hidden;position:relative;display:flex}
-
-/* GRID */
-.grid-area{flex:1;overflow-y:auto;padding:20px;transition:margin-right .35s cubic-bezier(.22,1,.36,1)}
+.grid-area{flex:1;overflow-y:auto;padding:24px}
 .grid-area.panel-open{margin-right:var(--panel-w)}
-.grid-area::-webkit-scrollbar{width:5px}
-.grid-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.poke-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
-.poke-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 8px 28px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;animation:fadeUp .25s ease both;overflow:hidden}
-.poke-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 6px 24px rgba(232,48,74,.18)}
-.poke-card.active{border-color:var(--accent);background:var(--surface2);box-shadow:0 0 0 2px var(--accent),0 6px 24px rgba(232,48,74,.25)}
-.card-dex{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text-mute)}
-.card-sprite{width:88px;height:88px;object-fit:contain;transition:transform .2s}
-.poke-card:hover .card-sprite{transform:scale(1.1)}
-.card-name{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.9rem;text-align:center;line-height:1.1;text-transform:capitalize}
-.card-level{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text-dim)}
-.gen-badge{position:absolute;top:5px;left:7px;font-family:'Share Tech Mono',monospace;font-size:.55rem;font-weight:700;color:#fff;padding:2px 5px;border-radius:3px;letter-spacing:.5px;opacity:.9}
-.gen-badge[data-gen="1"]{background:#b34a4a}
-.gen-badge[data-gen="2"]{background:#4a7fb3}
-.gen-badge[data-gen="3"]{background:#4a9e5c}
-.gen-badge[data-gen="4"]{background:#7a5cb3}
-.gen-badge[data-gen="5"]{background:#b3874a}
-.gen-badge[data-gen="6"]{background:#b34a8a}
-.gen-badge[data-gen="7"]{background:#4a9eb3}
-.variant-pip{position:absolute;bottom:7px;right:7px;background:var(--accent);color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.58rem;letter-spacing:.5px;padding:1px 5px;border-radius:3px}
-.has-note-dot{position:absolute;bottom:7px;left:7px;width:6px;height:6px;background:var(--yellow);border-radius:50%}
-/* Shiny — diagonal holographic sweep across card */
-.shiny-sweep{position:absolute;inset:0;pointer-events:none;border-radius:12px;overflow:hidden}
-.shiny-sweep::after{
-  content:'';
-  position:absolute;
-  top:0;left:-120%;
-  width:60%;height:100%;
-  background:linear-gradient(105deg,
-    transparent 20%,
-    rgba(255,215,100,0.04) 40%,
-    rgba(255,200,50,0.10) 50%,
-    rgba(255,215,100,0.04) 60%,
-    transparent 80%);
-  animation:holo-sweep 4s ease-in-out infinite;
-}
-@keyframes holo-sweep{
-  0%   {left:-120%}
-  40%  {left:140%}
-  100% {left:140%}
-}
-/* DETAIL PANEL */
-/* Account for header (~53px) + filter bar (~42px) = ~95px */
-.detail-panel{position:fixed;top:95px;right:0;bottom:0;width:var(--panel-w);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.22,1,.36,1);z-index:150}
-.detail-panel.open{transform:translateX(0)}
-.panel-close{position:absolute;top:10px;left:10px;background:var(--surface3);border:1px solid var(--border);color:var(--text-dim);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;transition:all .15s;z-index:10}
-.panel-close:hover{border-color:var(--accent);color:var(--accent)}
+.grid-area::-webkit-scrollbar,.panel-body::-webkit-scrollbar{width:8px}
+.grid-area::-webkit-scrollbar-thumb,.panel-body::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:4px;border:2px solid transparent;background-clip:content-box}
+.poke-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:12px;max-width:1600px}
 
-.panel-hero{display:flex;flex-direction:column;align-items:center;padding:44px 16px 16px;background:linear-gradient(180deg,var(--surface2) 0%,var(--surface) 100%);border-bottom:1px solid var(--border);flex-shrink:0;position:relative}
-.panel-art{width:120px;height:120px;object-fit:contain;transition:transform .3s;display:block}
-.panel-art:hover{transform:scale(1.05)}
-.shiny-note{background:rgba(245,200,66,.12);border:1px solid var(--yellow);color:var(--yellow);font-size:.62rem;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:4px;margin-top:4px}
-.panel-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.9rem;letter-spacing:1px;text-transform:capitalize;line-height:1;margin-top:8px}
-.panel-nickname{font-size:.8rem;color:var(--text-dim);font-style:italic}
-.panel-dex{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-mute);margin-top:2px}
-.panel-types{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:center}
-.type-badge{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.7rem;letter-spacing:.5px;text-transform:uppercase;padding:3px 10px;border-radius:4px;color:#fff}
-.panel-genus{font-size:.75rem;color:var(--text-dim);font-style:italic;margin-top:4px}
-.serebii-link{display:inline-block;margin-top:7px;font-size:.68rem;font-family:'Share Tech Mono',monospace;color:#5bbfb5;opacity:.75;text-decoration:none;letter-spacing:.5px;transition:opacity .15s}
-.serebii-link:hover{opacity:1;text-decoration:underline}
+/* ── Cards ──────────────────────────────────────────────────────── */
+.poke-card{position:relative;display:flex;flex-direction:column;gap:4px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;cursor:pointer;
+  transition:background-color .15s var(--ease),border-color .15s var(--ease);animation:fadeUp .3s var(--ease) both}
+.poke-card:hover{border-color:var(--line-strong);background:color-mix(in srgb,var(--card) 70%,var(--raised))}
+.poke-card.active{border-color:var(--accent);background:var(--raised);box-shadow:inset 0 0 0 1px var(--accent)}
+.poke-card.selected{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.poke-card.selected::after{content:"";position:absolute;top:8px;left:8px;width:20px;height:20px;border-radius:50%;background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/12px no-repeat}
+.card-top{display:flex;align-items:center;justify-content:space-between;height:20px;font-family:var(--mono);font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.fav-star{width:24px;height:24px;margin-right:-4px;display:grid;place-items:center;border-radius:6px;color:var(--text-3);opacity:.5;transition:opacity .15s var(--ease),color .15s var(--ease),background-color .15s var(--ease)}
+.fav-star .icon{width:14px;height:14px}
+.fav-star:hover{opacity:1;background:var(--raised)}
+.fav-star.fav-active{color:var(--fav);opacity:1}
+.fav-star.fav-active .icon{fill:var(--fav)}
+.card-sprite{width:96px;height:96px;object-fit:contain;align-self:center;margin:4px 0}
+.card-name{font-size:14px;font-weight:500;text-align:center;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:capitalize}
+.card-foot{display:flex;align-items:center;justify-content:center;gap:8px;height:16px;font-family:var(--mono);font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.card-flags{display:inline-flex;align-items:center;gap:4px}
+.card-flags:empty{display:none}
+.card-flags .icon{width:12px;height:12px}
+.shiny-flag,.note-flag{display:none}
+.poke-card.is-shiny .shiny-flag{display:block;color:var(--fav)}
+.poke-card.has-note .note-flag{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-.panel-scroll{flex:1;overflow-y:auto;padding:16px 18px 28px}
-.panel-scroll::-webkit-scrollbar{width:4px}
-.panel-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+/* ── Detail panel ───────────────────────────────────────────────── */
+.detail-panel{position:absolute;top:0;right:0;bottom:0;width:var(--panel-w);background:var(--deep);border-left:1px solid var(--line);display:flex;flex-direction:column;
+  transform:translateX(100%);visibility:hidden;transition:transform .32s var(--ease),visibility 0s .32s;z-index:150}
+.detail-panel.open{transform:none;visibility:visible;transition:transform .32s var(--ease)}
+.panel-bar{display:flex;align-items:center;gap:4px;height:48px;padding:0 12px;border-bottom:1px solid var(--line);flex:none}
+.panel-bar .spacer{flex:1}
+.panel-actions{display:flex;align-items:center;gap:4px}
+.panel-fav-btn.fav-active{color:var(--fav)}
+.panel-fav-btn.fav-active .icon{fill:var(--fav)}
+.panel-body{flex:1;overflow-y:auto;padding:24px}
+#panelScroll{display:flex;flex-direction:column;gap:32px;margin-top:32px}
 
-/* Variant tabs */
-.variant-section{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px}
-.variant-section-label{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
-.variant-tabs{display:flex;flex-direction:column;gap:4px}
-.variant-tab{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:6px;cursor:pointer;border:1px solid transparent;transition:all .15s;font-size:.78rem}
-.variant-tab:hover{background:var(--surface3);border-color:var(--border)}
-.variant-tab.active-tab{background:rgba(232,48,74,.1);border-color:var(--accent)}
-.variant-tab-lv{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--green);min-width:42px}
-.variant-tab-ot{color:var(--text-dim);flex:1}
-.variant-tab-file{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--text-mute);text-overflow:ellipsis;overflow:hidden;white-space:nowrap;max-width:130px}
+/* Hero: flat field tinted by the primary type */
+.panel-hero{--tc:#888;border-radius:16px;padding:24px 24px 20px;text-align:center;background:var(--card);border:1px solid var(--line);background:color-mix(in srgb,var(--tc) 14%,var(--card));border:1px solid color-mix(in srgb,var(--tc) 22%,transparent)}
+.panel-art{width:176px;height:176px;object-fit:contain;display:block;margin:0 auto 8px}
+.panel-egg{width:96px;height:96px;margin:24px auto 16px;color:var(--text-3)}
+.panel-name{font-size:32px;line-height:36px;font-weight:500;letter-spacing:-.01em;text-transform:capitalize}
+.panel-nickname{margin-top:4px;font-size:14px;color:var(--text-2)}
+.panel-dex{margin-top:4px;font-size:13px;color:var(--text-2)}
+.panel-dex .mono{font-size:12px}
+.panel-game{margin-top:2px;font-size:12px;color:var(--text-3)}
+.panel-types{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.type-badge{display:inline-flex;align-items:center;gap:8px;height:24px;padding:0 10px;border-radius:6px;font-size:12px;font-weight:500;text-transform:capitalize;color:var(--text);background:color-mix(in srgb,var(--card) 70%,transparent);border:1px solid var(--line)}
+.type-badge i{width:8px;height:8px;border-radius:50%;flex:none}
+.shiny-note{display:inline-flex;align-items:center;gap:4px;margin-top:12px;font-size:12px;color:var(--text-2)}
+.shiny-note .icon{width:12px;height:12px;color:var(--fav)}
 
 /* Sections */
-.section{margin-bottom:16px}
-.section-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-mute);margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.section{display:flex;flex-direction:column;gap:12px}
+.section-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:13px;font-weight:500;color:var(--text-2)}
+.section-title .meta{font-size:12px;font-weight:400;color:var(--text-3)}
+.empty-note{font-size:13px;color:var(--text-3)}
 
-/* Meta grid */
-.meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
-.meta-cell{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px}
-.meta-cell-label{font-size:.6rem;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px;font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:2px}
-.meta-cell-value{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.9rem;text-transform:capitalize}
+/* Variants */
+.variant-tabs{display:flex;flex-direction:column;padding:4px;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.variant-tab{display:flex;align-items:center;gap:12px;height:36px;padding:0 8px;border-radius:8px;cursor:pointer;font-size:13px;transition:background-color .15s var(--ease)}
+.variant-tab:hover{background:var(--raised)}
+.variant-tab.active-tab{background:var(--raised);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.variant-tab-lv{font-family:var(--mono);font-size:12px;color:var(--text);min-width:48px;font-variant-numeric:tabular-nums}
+.variant-tab-ot{display:inline-flex;align-items:center;gap:4px;color:var(--text-2);flex:1;min-width:0}
+.variant-tab-ot .icon{width:12px;height:12px;color:var(--fav)}
+.variant-tab-file{font-family:var(--mono);font-size:12px;color:var(--text-3);text-overflow:ellipsis;overflow:hidden;white-space:nowrap;max-width:160px}
 
-.flavour-text{font-size:.78rem;color:var(--text-dim);line-height:1.65;border-left:2px solid var(--border);padding-left:12px;margin-bottom:14px}
+.flavour-text{font-size:14px;line-height:22px;color:var(--text-2)}
 
-/* Stats */
-.stat-row{display:flex;align-items:center;gap:7px;margin-bottom:5px}
-.stat-name{width:70px;font-size:.65rem;color:var(--text-dim);font-family:'Share Tech Mono',monospace;text-align:right;flex-shrink:0}
-.stat-base{width:26px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-mute);flex-shrink:0;text-align:right}
-.stat-bar-wrap{flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
-.stat-bar{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.22,1,.36,1)}
-.stat-actual{width:30px;font-family:'Share Tech Mono',monospace;font-size:.72rem;font-weight:600;color:var(--text);flex-shrink:0}
-.stat-iv{width:28px;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text-mute);text-align:right;flex-shrink:0}
-.stat-ev{width:24px;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text-mute);flex-shrink:0}
-.stats-legend{display:flex;gap:10px;font-size:.58rem;color:var(--text-mute);font-family:'Share Tech Mono',monospace;margin-bottom:5px}
+/* Facts */
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:24px}
+.meta-cell{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:36px;border-bottom:1px solid var(--line);font-size:13px}
+.meta-cell-label{color:var(--text-3);white-space:nowrap}
+.meta-cell-value{color:var(--text);text-align:right;text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta-cell-value.mono{text-transform:none}
+.meta-cell.has-tooltip .meta-cell-value{text-decoration:underline dotted var(--text-3);text-underline-offset:3px}
 
-/* Evolution chain */
-.evo-chain{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin-top:2px}
-.evo-node{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s;min-width:64px}
-.evo-node:hover{border-color:var(--accent)}
-.evo-node.current-evo{border-color:var(--accent);background:rgba(232,48,74,.08)}
-.evo-node img{width:44px;height:44px;object-fit:contain}
-.evo-node-name{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.7rem;text-transform:capitalize;text-align:center;line-height:1}
-.evo-node-dex{font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--text-mute)}
-.evo-arrow{display:flex;flex-direction:column;align-items:center;padding:0 4px;color:var(--text-mute);font-size:.75rem;gap:1px}
-.evo-arrow-label{font-family:'Share Tech Mono',monospace;font-size:.52rem;color:var(--text-mute);white-space:nowrap;max-width:56px;text-align:center;overflow:hidden;text-overflow:ellipsis}
+/* Stats: hexagon plus table */
+.stat-hex{width:240px;height:200px;align-self:center;overflow:visible}
+.stat-hex .ring{fill:none;stroke:var(--line-strong);stroke-width:1}
+.stat-hex .axis{stroke:var(--line);stroke-width:1}
+.stat-hex .shape{fill:color-mix(in srgb,var(--tc) 30%,transparent);stroke:var(--tc);stroke-width:1.5;stroke-linejoin:round}
+.stat-hex .dot{fill:var(--tc)}
+.stat-hex text{font-family:var(--mono);font-size:10px;fill:var(--text-3)}
+.stat-table{width:100%;border-collapse:collapse;font-size:12px}
+.stat-table th{font-weight:400;color:var(--text-3);text-align:right;padding:0 0 4px}
+.stat-table th:first-child,.stat-table td:first-child{text-align:left}
+.stat-table td{height:24px;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--text-2)}
+.stat-table td:first-child{font-family:var(--ui)}
+.stat-table td.actual{color:var(--text);font-weight:500}
+.stat-table td.up{color:var(--positive)}
+.stat-table td.down{color:var(--accent-ink)}
+.stat-table tr.total td{border-top:1px solid var(--line);color:var(--text-3)}
+.iv{display:inline-flex;align-items:center;gap:8px}
+.iv-bar{display:inline-block;width:32px;height:4px;border-radius:2px;background:var(--raised-2);position:relative;overflow:hidden}
+.iv-bar::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--w);background:var(--text-3)}
+.iv.max .iv-bar::after{background:var(--tc)}
+
+/* Evolution */
+.evo-chain{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.evo-node{display:flex;flex-direction:column;align-items:center;gap:2px;width:88px;padding:8px 4px;border-radius:10px}
+.evo-node.current-evo{background:var(--raised);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.evo-node img{width:56px;height:56px;object-fit:contain}
+.evo-node-name{font-size:12px;color:var(--text);text-transform:capitalize;text-align:center;line-height:16px}
+.evo-node-dex{font-family:var(--mono);font-size:11px;color:var(--text-3)}
+.evo-arrow{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-3)}
+.evo-arrow-label{font-family:var(--mono);font-size:11px;white-space:nowrap;max-width:72px;text-align:center;overflow:hidden;text-overflow:ellipsis;text-transform:capitalize}
 
 /* Moves */
-.moves-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.move-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px}
-.move-name{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.84rem;text-transform:capitalize;margin-bottom:4px}
-.move-meta{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.move-pp{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text-mute);margin-top:2px}
+.moves-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.move-card{padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line)}
+.move-name{font-size:14px;font-weight:500;text-transform:capitalize}
+.move-meta{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12px;color:var(--text-2);text-transform:capitalize}
+.move-meta i{width:8px;height:8px;border-radius:50%;flex:none}
+.move-pp{margin-top:2px;font-family:var(--mono);font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
 
 /* Abilities */
-.ability-list{display:flex;flex-wrap:wrap;gap:6px}
-.ability-tag{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:.78rem;font-family:'Rajdhani',sans-serif;font-weight:600;text-transform:capitalize;position:relative;cursor:default}
-.ability-tag.hidden{border-color:#5546a8;color:#a99af0}
+.ability-list{display:flex;flex-wrap:wrap;gap:8px}
+.ability-tag{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:8px;background:var(--card);border:1px solid var(--line);font-size:13px;text-transform:capitalize}
+.ability-tag small{font-size:12px;color:var(--text-3);text-transform:none}
 
-/* Tooltip — shared by abilities and nature */
-.has-tooltip{position:relative;cursor:default}
+/* Tooltip, rendered into body to avoid clipping */
+.has-tooltip{cursor:default}
 .has-tooltip .tooltip{display:none}
-/* Tooltip now rendered via JS into body to avoid overflow clipping */
-#hexdex-tooltip{
-  display:none;
-  position:fixed;
-  background:var(--surface3);
-  border:1px solid var(--border);
-  border-radius:7px;
-  padding:8px 11px;
-  font-family:'Exo 2',sans-serif;
-  font-size:.73rem;
-  font-weight:400;
-  color:var(--text-dim);
-  line-height:1.5;
-  white-space:normal;
-  width:220px;
-  text-align:left;
-  z-index:9999;
-  box-shadow:0 4px 16px rgba(0,0,0,.4);
-  pointer-events:none;
-}
+#hexdex-tooltip{display:none;position:fixed;width:240px;padding:8px 12px;background:var(--raised);border:1px solid var(--line-strong);border-radius:8px;box-shadow:var(--shadow);font-size:12px;line-height:18px;color:var(--text-2);white-space:normal;text-align:left;z-index:9999;pointer-events:none}
 
-/* Notes & Tags */
-.notes-area{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;resize:vertical;min-height:64px;outline:none;transition:border-color .2s;line-height:1.5}
-.notes-area:focus{border-color:var(--accent)}
-.notes-area::placeholder{color:var(--text-mute)}
-.tags-input-wrap{display:flex;flex-wrap:wrap;gap:5px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;transition:border-color .2s;cursor:text;min-height:36px}
-.tags-input-wrap:focus-within{border-color:var(--accent)}
-.tag-chip{display:flex;align-items:center;gap:4px;background:var(--surface3);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:.72rem;font-family:'Rajdhani',sans-serif;font-weight:600}
-.tag-chip-remove{cursor:pointer;color:var(--text-mute);font-size:.8rem;line-height:1;transition:color .1s}
-.tag-chip-remove:hover{color:var(--accent)}
-.tag-input{background:none;border:none;outline:none;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.78rem;min-width:80px;flex:1}
-.tag-input::placeholder{color:var(--text-mute)}
-.tag-autocomplete{position:absolute;left:0;right:0;top:calc(100% + 3px);background:var(--surface2);border:1px solid var(--border);border-radius:6px;z-index:200;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.4);display:none}
-.tag-autocomplete.open{display:block}
-.tag-ac-item{padding:5px 10px;font-size:.78rem;font-family:'Exo 2',sans-serif;cursor:pointer;color:var(--text-dim);transition:background .1s}
-.tag-ac-item:hover,.tag-ac-item.ac-active{background:var(--surface3);color:var(--text)}
-.tags-input-wrap{position:relative}
-.save-note-btn{margin-top:8px;width:100%;padding:6px;background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.8rem;letter-spacing:1px;cursor:pointer;transition:all .15s}
-.save-note-btn:hover{border-color:var(--green);color:var(--green)}
-.save-note-btn.saved{border-color:var(--green);color:var(--green)}
+/* Notes and tags */
+.notes-area{width:100%;min-height:88px;resize:vertical;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--text);font-size:14px;line-height:20px;outline:0;transition:border-color .15s var(--ease)}
+.notes-area:focus{border-color:var(--line-strong)}
+.notes-area::placeholder,.tag-input::placeholder{color:var(--text-3)}
+.tags-input-wrap{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:40px;padding:8px;border-radius:10px;background:var(--card);border:1px solid var(--line);cursor:text;transition:border-color .15s var(--ease)}
+.tags-input-wrap:focus-within{border-color:var(--line-strong)}
+.tag-chip{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 8px;border-radius:6px;background:var(--raised);border:1px solid var(--line);font-size:12px;color:var(--text-2)}
+.tag-chip-remove{width:16px;height:16px;display:grid;place-items:center;border-radius:4px;color:var(--text-3)}
+.tag-chip-remove:hover{color:var(--text);background:var(--raised-2)}
+.tag-chip-remove .icon{width:12px;height:12px}
+.tag-input{flex:1;min-width:120px;height:24px;background:none;border:0;outline:0;font-size:13px;color:var(--text)}
+.tag-autocomplete,.bulk-bar-ac{position:absolute;left:0;right:0;padding:4px;background:var(--card);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);display:none;z-index:200}
+.tag-autocomplete{top:calc(100% + 4px)}
+.tag-autocomplete.open,.bulk-bar-ac.open{display:block}
+.tag-ac-item,.bulk-bar-ac-item{display:flex;align-items:center;height:32px;padding:0 12px;border-radius:6px;font-size:13px;color:var(--text-2);cursor:pointer}
+.tag-ac-item b,.bulk-bar-ac-item b{color:var(--text);font-weight:500}
+.tag-ac-item:hover,.tag-ac-item.ac-active,.bulk-bar-ac-item:hover,.bulk-bar-ac-item.ac-active{background:var(--raised);color:var(--text)}
+.save-status{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--text-3);opacity:0;transition:opacity .2s var(--ease)}
+.save-status.show{opacity:1}
+.save-status .icon{width:12px;height:12px;color:var(--positive)}
+.save-status.error{color:var(--accent-ink)}
 
-/* Errors */
-.error-box{background:rgba(232,48,74,.08);border:1px solid rgba(232,48,74,.3);border-radius:8px;padding:10px 14px;font-size:.76rem;color:var(--accent);margin-bottom:14px}
-.error-box summary{cursor:pointer;font-weight:600}
-.error-box li{margin-top:4px;color:var(--text-dim)}
+/* Errors and states */
+.error-box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-size:13px;margin-bottom:12px}
+.error-box summary{cursor:pointer;font-weight:500;color:var(--accent-ink)}
+.error-box ul{margin-top:8px;padding-left:16px}
+.error-box li{margin-top:4px;color:var(--text-2)}
+.error-box li b{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--text)}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:12px;color:var(--text-3);text-align:center}
+.empty-state .big-icon{width:40px;height:40px;stroke-width:1.25;color:var(--text-3)}
+.empty-state h2{font-size:16px;font-weight:500;color:var(--text)}
+.empty-state p{font-size:14px;line-height:22px;max-width:340px;color:var(--text-2)}
+.spinner{width:24px;height:24px;border:2px solid var(--line-strong);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* States */
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:12px;color:var(--text-mute);text-align:center}
-.empty-state .big-icon{font-size:4rem;opacity:.25}
-.empty-state p{font-size:.88rem;max-width:300px;line-height:1.65}
-.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+/* Bulk tag bar */
+.bulk-bar{position:fixed;bottom:24px;left:50%;display:flex;align-items:center;gap:12px;padding:8px 8px 8px 16px;background:var(--card);border:1px solid var(--line-strong);border-radius:14px;box-shadow:var(--shadow);white-space:nowrap;z-index:500;
+  opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity .2s var(--ease),transform .3s var(--ease)}
+.bulk-bar.visible{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+.bulk-bar-count{font-family:var(--mono);font-size:12px;color:var(--text-2);min-width:88px;font-variant-numeric:tabular-nums}
+.bulk-bar-input{width:180px;height:32px;padding:0 12px;background:var(--raised);border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:13px;outline:0;transition:border-color .15s var(--ease)}
+.bulk-bar-input:focus{border-color:var(--line-strong)}
+.bulk-bar-ac{bottom:calc(100% + 6px);min-width:180px}
 
-/* Tag dropdown */
-.tag-filter-wrap{position:relative;display:flex;flex-direction:column;gap:3px}
-.tag-active-chips{display:flex;flex-wrap:wrap;gap:3px;max-width:200px}
-.tag-filter-chip{display:flex;align-items:center;gap:3px;background:var(--surface3);border:1px solid var(--accent);border-radius:4px;padding:1px 6px;font-size:.68rem;font-family:'Rajdhani',sans-serif;font-weight:600;color:var(--accent);cursor:pointer;white-space:nowrap}
-.tag-filter-chip:hover{background:rgba(232,48,74,.15)}
-.tag-filter-chip span{opacity:.6;font-size:.7rem}
-.tag-dropdown-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text-dim);font-family:'Exo 2',sans-serif;font-size:.8rem;cursor:pointer;transition:border-color .2s;white-space:nowrap}
-.tag-dropdown-btn:hover{border-color:var(--accent);color:var(--text)}
-.tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px;z-index:300;min-width:160px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4)}
-.tag-dropdown.open{display:block}
-.tag-dropdown-item{padding:5px 10px;border-radius:5px;font-size:.78rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600;transition:background .1s;white-space:nowrap}
-.tag-dropdown-item:hover{background:var(--surface3)}
-.tag-dropdown-item.selected{color:var(--accent)}
-.tag-dropdown-empty{padding:8px 10px;font-size:.75rem;color:var(--text-mute);font-style:italic}
-/* fav star on grid cards — top-right corner */
-.fav-star{position:absolute;top:5px;right:6px;font-size:.82rem;cursor:pointer;opacity:.18;transition:opacity .15s,transform .15s;z-index:3;line-height:1;user-select:none}
-.fav-star:hover{opacity:.75;transform:scale(1.25)}
-.fav-star.fav-active{opacity:1;filter:drop-shadow(0 0 5px gold)}
-/* Panel fav button — top-right of hero */
-.panel-fav-btn{position:absolute;top:10px;right:10px;background:var(--surface3);border:1px solid var(--border);border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;transition:all .15s;opacity:.4;z-index:5}
-.panel-fav-btn:hover{opacity:.85;border-color:var(--yellow)}
-.panel-fav-btn.fav-active{opacity:1;border-color:var(--yellow);background:rgba(245,200,66,.12)}
-
-/* Selection mode */
-.btn-select{border-color:var(--text-mute)}
-.btn-select.selecting{border-color:#5bbfb5;color:#5bbfb5;background:rgba(91,191,181,.1)}
-.poke-card.selected{outline:2px solid #5bbfb5;outline-offset:-2px}
-.poke-card.selected::after{content:'✓';position:absolute;top:5px;left:7px;width:18px;height:18px;background:#5bbfb5;color:#fff;border-radius:50%;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:10;line-height:18px;text-align:center}
-.bulk-bar{position:fixed;bottom:-80px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:12px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:bottom .25s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
-.bulk-bar.visible{bottom:24px}
-.bulk-bar-count{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9rem;color:var(--text-dim);min-width:80px}
-.bulk-bar-input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.8rem;width:160px;outline:none;transition:border-color .15s}
-.bulk-bar-input:focus{border-color:#5bbfb5}
-.bulk-bar-ac{position:absolute;bottom:calc(100% + 6px);left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:6px;z-index:600;overflow:hidden;display:none;box-shadow:0 -4px 16px rgba(0,0,0,.4);min-width:180px}
-.bulk-bar-ac.open{display:block}
-.bulk-bar-ac-item{padding:5px 10px;font-size:.78rem;font-family:'Exo 2',sans-serif;cursor:pointer;color:var(--text-dim);transition:background .1s}
-.bulk-bar-ac-item:hover,.bulk-bar-ac-item.ac-active{background:var(--surface3);color:var(--text)}
-.bulk-bar-apply{background:rgba(91,191,181,.15);border:1px solid #5bbfb5;border-radius:6px;color:#5bbfb5;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.8rem;letter-spacing:.5px;padding:5px 14px;cursor:pointer;transition:all .15s}
-.bulk-bar-apply:hover{background:rgba(91,191,181,.3)}
-.bulk-bar-clear{background:none;border:none;color:var(--text-mute);font-size:.8rem;cursor:pointer;padding:4px 8px;border-radius:4px;transition:color .15s}
-.bulk-bar-clear:hover{color:var(--accent)}
+@media (max-width:1360px){ .chip .lbl{display:none} .chip{padding:0 8px} }
+@media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation:none!important;transition:none!important} }
 </style>
 </head>
 <body>
+
+<!-- Lucide icons (ISC licence) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-crown" viewBox="0 0 24 24"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></symbol>
+  <symbol id="i-egg" viewBox="0 0 24 24"><path d="M12 22c6.23-.05 7.87-5.57 7.5-10-.36-4.34-3.95-9.96-7.5-10-3.55.04-7.14 5.66-7.5 10-.37 4.43 1.27 9.95 7.5 10z"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-select" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></symbol>
+  <symbol id="i-folder-search" viewBox="0 0 24 24"><path d="M10.7 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v4.1"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.9-1.9"/></symbol>
+</svg>
 
 <div id="hexdex-tooltip"></div>
 
 <header>
   <div class="brand">
-    <div class="logo">HEXDEX<span>.</span></div>
+    <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 20.2 7.25v9.5L12 21.5 3.8 16.75v-9.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 8 15.46 10v4L12 16 8.54 14v-4Z" fill="currentColor"/></svg>
+    <div class="logo">HexDex</div>
     <div class="build-version" title="Current HexDex build" aria-label="Current HexDex build: {{ build_version }}">{{ build_version }}</div>
   </div>
-  <div class="scan-bar">
-    <span style="color:var(--text-mute);font-size:.8rem;margin-right:4px">📁</span>
-    <input id="dirInput" type="text" placeholder="Paste your Pokémon folder path…  e.g. C:\Users\You\Pokemon\MyCollection">
-  </div>
-  <button class="btn btn-ghost" onclick="browseDirectory()" title="Pick a folder">Browse…</button>
-  <label class="shiny-toggle" style="font-size:.75rem;white-space:nowrap">
-    <input type="checkbox" id="scanRecursive"> Subfolders
+  <label class="field scan-bar">
+    <svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>
+    <span class="sr-only">Collection folder</span>
+    <input id="dirInput" type="text" spellcheck="false" placeholder="Folder of exported Pokémon files, e.g. C:\Users\You\Pokemon">
   </label>
-  <button class="btn btn-accent" id="btnScan" onclick="scanDirectory()">SCAN</button>
-  <button class="btn btn-ghost" onclick="exportCSV()" title="Export collection to CSV">⬇ CSV</button>
-  <button class="btn btn-ghost btn-select" id="btnSelect" onclick="toggleSelectMode()" title="Select multiple Pokémon to bulk tag">Select</button>
-  <div class="header-stats" id="headerStats">—</div>
+  <button class="btn btn-ghost" onclick="browseDirectory()" title="Pick a folder">Browse</button>
+  <label class="check"><input type="checkbox" id="scanRecursive"> Subfolders</label>
+  <div class="header-gap"></div>
+  <button class="btn btn-accent" id="btnScan" onclick="scanDirectory()">Scan</button>
 </header>
 
-
 <!-- Bulk tag action bar -->
-<div class="bulk-bar" id="bulkBar">
+<div class="bulk-bar" id="bulkBar" role="region" aria-label="Bulk tagging">
   <div class="bulk-bar-count" id="bulkCount">0 selected</div>
   <div style="position:relative">
-    <input class="bulk-bar-input" id="bulkTagInput" placeholder="Add tag to all…"
+    <input class="bulk-bar-input" id="bulkTagInput" placeholder="Tag to add" aria-label="Tag to add to selected Pokémon"
       oninput="bulkAcShow(this.value)"
       onkeydown="bulkTagKeydown(event)"
       onblur="setTimeout(bulkAcHide,150)">
     <div class="bulk-bar-ac" id="bulkAcDrop"></div>
   </div>
-  <button class="bulk-bar-apply" onclick="bulkApplyTag()">APPLY</button>
-  <button class="bulk-bar-clear" onclick="bulkClearSelection()" title="Clear selection">✕ Clear</button>
+  <button class="btn btn-accent bulk-bar-apply" onclick="bulkApplyTag()">Apply</button>
+  <button class="btn btn-quiet bulk-bar-clear" onclick="bulkClearSelection()" title="Clear selection">Clear</button>
 </div>
 
-<div class="filter-bar">
-  <span class="filter-label">Filter</span>
-  <input class="filter-search" id="filterName" placeholder="Name / nickname…" oninput="applyFilters()">
+<div class="filter-bar" role="search">
+  <label class="field filter-search">
+    <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+    <span class="sr-only">Search by name or nickname</span>
+    <input id="filterName" placeholder="Search" autocomplete="off" oninput="applyFilters()">
+  </label>
   <div class="custom-sel-wrap" id="wrapType">
-    <button class="custom-sel-btn" id="btnType" onclick="toggleCustomSel('wrapType')">All Types ▾</button>
+    <button class="custom-sel-btn" id="btnType" onclick="toggleCustomSel('wrapType')" aria-label="Type">All types<svg class="icon"><use href="#i-chevron"/></svg></button>
     <div class="custom-sel-drop" id="dropType">
-      <div class="custom-sel-item selected" data-val="">All Types</div>
+      <div class="custom-sel-item selected" data-val="">All types</div>
       <div class="custom-sel-item" data-val="normal">Normal</div>
       <div class="custom-sel-item" data-val="fire">Fire</div>
       <div class="custom-sel-item" data-val="water">Water</div>
@@ -354,60 +391,64 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
     </div>
   </div>
   <div class="custom-sel-wrap" id="wrapGen">
-    <button class="custom-sel-btn" id="btnGen" onclick="toggleCustomSel('wrapGen')">All Gens ▾</button>
+    <button class="custom-sel-btn" id="btnGen" onclick="toggleCustomSel('wrapGen')" aria-label="Generation">All generations<svg class="icon"><use href="#i-chevron"/></svg></button>
     <div class="custom-sel-drop" id="dropGen">
-      <div class="custom-sel-item selected" data-val="">All Gens</div>
-      <div class="custom-sel-item" data-val="1">Gen 1</div>
-      <div class="custom-sel-item" data-val="2">Gen 2</div>
-      <div class="custom-sel-item" data-val="3">Gen 3</div>
-      <div class="custom-sel-item" data-val="4">Gen 4</div>
-      <div class="custom-sel-item" data-val="5">Gen 5</div>
-      <div class="custom-sel-item" data-val="6">Gen 6</div>
-      <div class="custom-sel-item" data-val="7">Gen 7</div>
+      <div class="custom-sel-item selected" data-val="">All generations</div>
+      <div class="custom-sel-item" data-val="1">Generation 1</div>
+      <div class="custom-sel-item" data-val="2">Generation 2</div>
+      <div class="custom-sel-item" data-val="3">Generation 3</div>
+      <div class="custom-sel-item" data-val="4">Generation 4</div>
+      <div class="custom-sel-item" data-val="5">Generation 5</div>
+      <div class="custom-sel-item" data-val="6">Generation 6</div>
+      <div class="custom-sel-item" data-val="7">Generation 7</div>
     </div>
   </div>
   <div class="custom-sel-wrap" id="wrapSort">
-    <button class="custom-sel-btn" id="btnSort" onclick="toggleCustomSel('wrapSort')">Sort: Dex # ▾</button>
+    <button class="custom-sel-btn" id="btnSort" onclick="toggleCustomSel('wrapSort')" aria-label="Sort">Sort: Pokédex number<svg class="icon"><use href="#i-chevron"/></svg></button>
     <div class="custom-sel-drop" id="dropSort">
-      <div class="custom-sel-item selected" data-val="dex">Sort: Dex #</div>
-      <div class="custom-sel-item" data-val="level">Sort: Level</div>
-      <div class="custom-sel-item" data-val="name">Sort: Name</div>
-      <div class="custom-sel-item" data-val="shiny">Sort: Shiny first</div>
+      <div class="custom-sel-item selected" data-val="dex" data-label="Sort: Pokédex number">Pokédex number</div>
+      <div class="custom-sel-item" data-val="level" data-label="Sort: Level">Level</div>
+      <div class="custom-sel-item" data-val="name" data-label="Sort: Name">Name</div>
+      <div class="custom-sel-item" data-val="shiny" data-label="Sort: Shiny first">Shiny first</div>
     </div>
   </div>
-  <label class="shiny-toggle">
+  <span class="divider"></span>
+  <label class="chip fav" title="Favourites">
     <input type="checkbox" id="filterFav" onchange="applyFilters()">
-    ⭐ Favourites
+    <svg class="icon" aria-hidden="true"><use href="#i-star"/></svg><span class="lbl">Favourites</span>
   </label>
-  <label class="shiny-toggle">
+  <label class="chip" title="Shiny">
     <input type="checkbox" id="filterShiny" onchange="applyFilters()">
-    ✨ Shinies
+    <svg class="icon" aria-hidden="true"><use href="#i-sparkles"/></svg><span class="lbl">Shiny</span>
   </label>
-  <label class="shiny-toggle">
+  <label class="chip" title="Legendary">
     <input type="checkbox" id="filterLegendary" onchange="applyFilters()">
-    🌟 Legendaries
+    <svg class="icon" aria-hidden="true"><use href="#i-crown"/></svg><span class="lbl">Legendary</span>
   </label>
-  <label class="shiny-toggle">
+  <label class="chip" title="Egg">
     <input type="checkbox" id="filterEgg" onchange="applyFilters()">
-    🥚 Eggs
+    <svg class="icon" aria-hidden="true"><use href="#i-egg"/></svg><span class="lbl">Egg</span>
   </label>
   <div class="tag-filter-wrap" id="tagFilterWrap">
-    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-      <button class="tag-dropdown-btn" onclick="toggleTagDropdown(event)" id="tagDropdownBtn">🏷 Tags ▾</button>
-      <div class="tag-active-chips" id="tagActiveChips"></div>
-    </div>
+    <button class="chip" onclick="toggleTagDropdown(event)" id="tagDropdownBtn" title="Tags" aria-haspopup="listbox"></button>
+    <div class="tag-active-chips" id="tagActiveChips"></div>
     <div class="tag-dropdown" id="tagDropdown">
       <div class="tag-dropdown-empty" id="tagDropdownEmpty">No tags yet</div>
     </div>
   </div>
+  <div class="header-gap"></div>
+  <div class="header-stats" id="headerStats" role="status">No collection</div>
+  <button class="btn btn-quiet btn-select" id="btnSelect" onclick="toggleSelectMode()" title="Select multiple Pokémon to tag them together"></button>
+  <button class="btn btn-quiet" onclick="exportCSV()" title="Export collection to CSV"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Export CSV</button>
 </div>
 
 <div class="main">
   <div class="grid-area" id="gridArea">
     <div class="poke-grid" id="pokeGrid">
       <div class="empty-state" style="grid-column:1/-1">
-        <div class="big-icon">🔍</div>
-        <p>Enter your Pokémon folder path above and hit SCAN to load your collection.</p>
+        <svg class="icon big-icon" aria-hidden="true"><use href="#i-folder-search"/></svg>
+        <h2>No collection loaded</h2>
+        <p>Choose the folder with your exported Pokémon files, then select Scan.</p>
       </div>
     </div>
     <div class="scan-progress" id="scanProgress" hidden>
@@ -416,16 +457,26 @@ header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var
     </div>
   </div>
 
-  <div class="detail-panel" id="detailPanel">
-    <button class="panel-close" onclick="closePanel()" title="Close (Esc)">✕</button>
-    <div class="panel-hero" id="panelHero"></div>
-    <div class="panel-scroll" id="panelScroll"></div>
-  </div>
+  <aside class="detail-panel" id="detailPanel" aria-label="Pokémon details">
+    <div class="panel-bar">
+      <button class="icon-btn panel-close" onclick="closePanel()" title="Close (Esc)" aria-label="Close details"><svg class="icon"><use href="#i-x"/></svg></button>
+      <div class="spacer"></div>
+      <div class="panel-actions" id="panelActions"></div>
+    </div>
+    <div class="panel-body" id="panelBody">
+      <div class="panel-hero" id="panelHero"></div>
+      <div id="panelScroll"></div>
+    </div>
+  </aside>
 </div>
 
 <script>
 // ── State ─────────────────────────────────────────────────────────
 let allPokemon = [], filteredPokemon = [], groupedCards = [];
+
+// ── Small helpers ─────────────────────────────────────────────────
+const icon = (name, extraClass='', attrs='') => `<svg class="icon${extraClass?' '+extraClass:''}" aria-hidden="true" ${attrs}><use href="#i-${name}"/></svg>`;
+const capitalise = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
 // ── Custom select dropdowns (replaces native <select> for Qt compat) ──
 const _selVal = {type:'', gen:'', sort:'dex'};
@@ -452,7 +503,7 @@ function pickCustomSel(wrapId, val, label){
   drop.querySelectorAll('.custom-sel-item').forEach(el=>{
     el.classList.toggle('selected', el.dataset.val === val);
   });
-  btn.textContent = label + ' ▾';
+  btn.innerHTML = label + icon('chevron');
   btn.classList.remove('open');
   drop.classList.remove('open');
   // Store value
@@ -467,7 +518,7 @@ document.addEventListener('click', e => {
   const item = e.target.closest('.custom-sel-item');
   if(item){
     const wrap = item.closest('.custom-sel-wrap');
-    if(wrap) pickCustomSel(wrap.id, item.dataset.val, item.textContent);
+    if(wrap) pickCustomSel(wrap.id, item.dataset.val, item.dataset.label || item.textContent);
     return;
   }
   // Close if clicking outside
@@ -489,7 +540,7 @@ document.addEventListener('mouseover', e => {
   _tt.style.display = 'block';
   // Position once on entry — anchored above the hovered element
   const rect = el.getBoundingClientRect();
-  const w = 220;
+  const w = 240;
   let x = rect.left;
   let y = rect.top - _tt.offsetHeight - 8;
   if(x + w > window.innerWidth - 8) x = window.innerWidth - w - 8;
@@ -515,7 +566,7 @@ const TYPE_COLORS = {
   rock:'#B8A038',ghost:'#705898',dragon:'#7038F8',dark:'#504F4B',
   steel:'#B8B8D0',fairy:'#F0A0FF'
 };
-function typeBadge(t){return `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#888'}">${t}</span>`}
+function typeBadge(t){return `<span class="type-badge"><i style="background:${TYPE_COLORS[t]||'#888'}"></i>${t}</span>`}
 
 // ── Stat calculation (Gen 3/4 formula) ───────────────────────────
 // Nature modifier: +10% boosted stat, -10% hindered stat
@@ -620,6 +671,16 @@ async function browseDirectory() {
   }
 }
 
+// ── Collection count ──────────────────────────────────────────────
+function updateHeaderStats() {
+  const el = document.getElementById('headerStats');
+  if (!allPokemon.length) { el.textContent = 'No collection'; return; }
+  const shown = filteredPokemon.length;
+  const count = shown === allPokemon.length ? `${allPokemon.length} Pokémon` : `${shown} of ${allPokemon.length}`;
+  const errs = window._scanErrors?.length || 0;
+  el.innerHTML = count + (errs ? ` · <span class="err">${errs} ${errs === 1 ? 'error' : 'errors'}</span>` : '');
+}
+
 // ── Scan ──────────────────────────────────────────────────────────
 let scanBusy = false, scanProgressTimer = null, currentScanId = null;
 
@@ -650,6 +711,12 @@ async function pollScanProgress(scanId) {
     scanProgressTimer = setTimeout(() => pollScanProgress(scanId), 1000);
 }
 
+function emptyState(iconName, title, text){
+  return `<div class="empty-state" style="grid-column:1/-1">
+    <svg class="icon big-icon" aria-hidden="true"><use href="#i-${iconName}"/></svg>
+    <h2>${title}</h2>${text?`<p>${text}</p>`:''}</div>`;
+}
+
 async function scanDirectory() {
   if (scanBusy) return;
   let dir = document.getElementById('dirInput').value.trim();
@@ -667,9 +734,9 @@ async function scanDirectory() {
   currentDir = dir;
   await saveLastDir(dir);
   document.getElementById('pokeGrid').innerHTML =
-    `<div class="empty-state" style="grid-column:1/-1"><div class="spinner"></div>
-     <p>Scanning and fetching Pokémon data…<br>First run downloads images to cache.</p></div>`;
-  document.getElementById('headerStats').innerHTML = '…';
+    `<div class="empty-state" style="grid-column:1/-1"><div class="spinner" role="progressbar" aria-label="Scanning"></div>
+     <h2>Scanning your collection</h2><p>The first scan downloads Pokémon data and artwork, so it can take a while.</p></div>`;
+  document.getElementById('headerStats').textContent = 'Scanning…';
   closePanel();
   pollScanProgress(scanId);
   try {
@@ -682,15 +749,12 @@ async function scanDirectory() {
     const data = await res.json();
     if (data.error){
       document.getElementById('scanProgressText').textContent = data.error;
-      document.getElementById('pokeGrid').innerHTML =
-        `<div class="empty-state" style="grid-column:1/-1"><div class="big-icon">⚠️</div><p>${data.error}</p></div>`;
+      document.getElementById('pokeGrid').innerHTML = emptyState('alert', 'Scan failed', data.error);
+      updateHeaderStats();
       return;
     }
     allPokemon = data.pokemon||[];
     window._scanErrors = data.errors||[];
-    document.getElementById('headerStats').innerHTML =
-      `<b>${allPokemon.length}</b> loaded` +
-      (window._scanErrors.length?` · <span style="color:var(--accent)">${window._scanErrors.length} errors</span>`:'');
     activeTags.clear();
     renderActiveTagChips();
     rebuildTagDropdown();
@@ -699,8 +763,8 @@ async function scanDirectory() {
     applyFilters();
   } catch(e) {
     document.getElementById('scanProgressText').textContent = `Scan could not finish: ${e.message}`;
-    document.getElementById('pokeGrid').innerHTML =
-      `<div class="empty-state" style="grid-column:1/-1"><div class="big-icon">💥</div><p>${e.message}</p></div>`;
+    document.getElementById('pokeGrid').innerHTML = emptyState('alert', 'Scan could not finish', e.message);
+    updateHeaderStats();
   } finally {
     scanBusy = false;
     clearTimeout(scanProgressTimer);
@@ -770,12 +834,13 @@ function toggleTagFilter(tag) {
 function renderActiveTagChips() {
   const wrap = document.getElementById('tagActiveChips');
   wrap.innerHTML = [...activeTags].map(t =>
-    `<div class="tag-filter-chip" onclick="toggleTagFilter('${t.replace(/'/g,"\\'")}')">
-      ${t}<span>✕</span>
-    </div>`
+    `<button class="tag-filter-chip" onclick="toggleTagFilter('${t.replace(/'/g,"\\'")}')" title="Remove tag filter">
+      ${t}${icon('x')}
+    </button>`
   ).join('');
-  document.getElementById('tagDropdownBtn').textContent = activeTags.size
-    ? `🏷 Tags (${activeTags.size}) ▾` : '🏷 Tags ▾';
+  const btn = document.getElementById('tagDropdownBtn');
+  btn.classList.toggle('on', activeTags.size > 0);
+  btn.innerHTML = icon('tag') + `<span class="lbl">Tags${activeTags.size ? ` (${activeTags.size})` : ''}</span>` + icon('chevron');
 }
 
 // Close dropdown when clicking outside
@@ -841,6 +906,7 @@ function applyFilters() {
   activeCardIndex=null;
   closePanel();
   renderGrid();
+  updateHeaderStats();
 }
 
 // ── Grid ──────────────────────────────────────────────────────────
@@ -856,42 +922,54 @@ function renderGrid() {
   let errHtml='';
   if(window._scanErrors?.length){
     errHtml=`<div style="grid-column:1/-1"><details class="error-box">
-      <summary>${window._scanErrors.length} file(s) could not be parsed</summary>
+      <summary>${window._scanErrors.length} ${window._scanErrors.length===1?'file':'files'} could not be read</summary>
       <ul>${window._scanErrors.map(e=>`<li><b>${e.file}</b>: ${e.reason}</li>`).join('')}</ul>
     </details></div>`;
   }
   if(!groupedCards.length){
-    grid.innerHTML=errHtml+`<div class="empty-state" style="grid-column:1/-1">
-      <div class="big-icon">🕳️</div><p>No Pokémon match your filters.</p></div>`;
+    grid.innerHTML=errHtml+emptyState('search', allPokemon.length ? 'No Pokémon match these filters' : 'No Pokémon files found',
+      allPokemon.length ? 'Clear a filter or search for another name.' : 'Check the folder path, or turn on Subfolders.');
     return;
   }
   grid.innerHTML=errHtml+groupedCards.map((group,gi)=>{
     const p=group.members[group.activeVariant],api=p.api||{};
-    const name = p.is_egg
-      ? `🥚 Egg (${api.name?api.name.charAt(0).toUpperCase()+api.name.slice(1):`#${p.species_id}`})`
-      : api.name?api.name.charAt(0).toUpperCase()+api.name.slice(1):`#${p.species_id}`;
-    const dexNo=api.id?`#${String(api.id).padStart(3,'0')}`:''
+    const speciesName = api.name?capitalise(api.name):`#${p.species_id}`;
+    const name = p.is_egg ? `Egg (${speciesName})` : speciesName;
+    const dexNo=api.id?`#${String(api.id).padStart(3,'0')}`:`#${String(p.species_id).padStart(3,'0')}`;
     const sprite=getSpriteUrl(p,false);
     const hasNote=group.members.some(m=>m.note||m.tags?.length);
-    return `<div class="poke-card${activeCardIndex===gi?' active':''}${selectedCards.has(gi)?' selected':''}" id="card-${gi}"
-      onclick="cardClicked(${gi})" style="animation-delay:${Math.min(gi*.02,.4)}s">
-      <div class="gen-badge" data-gen="${p.generation}">G${p.generation}</div>
-      ${p.shiny?'<div class="shiny-sweep"></div>':''}
-      ${group.members.length>1?`<div class="variant-pip">${group.members.length}</div>`:''}
-      ${hasNote?'<div class="has-note-dot" title="Has notes/tags"></div>':''}
-      <div class="fav-star${group.members.some(m=>m.favourite)?' fav-active':''}" title="Toggle favourite" onclick="event.stopPropagation();toggleFavFromCard(${gi})">⭐</div>
-      <div class="card-dex">${dexNo}</div>
-      <img class="card-sprite" src="${sprite}" alt="${name}" loading="lazy"
+    const anyFav=group.members.some(m=>m.favourite);
+    const classes=['poke-card'];
+    if(activeCardIndex===gi)classes.push('active');
+    if(selectedCards.has(gi))classes.push('selected');
+    if(hasNote)classes.push('has-note');
+    if(p.shiny)classes.push('is-shiny');
+    return `<div class="${classes.join(' ')}" id="card-${gi}" role="button" tabindex="0" aria-label="${name}, level ${p.level||'unknown'}"
+      onclick="cardClicked(${gi})" style="animation-delay:${Math.min(gi*.02,.3)}s">
+      <div class="card-top"><span>${dexNo} · G${p.generation}</span>
+        <button class="fav-star${anyFav?' fav-active':''}" title="Toggle favourite" aria-label="Toggle favourite" aria-pressed="${anyFav}"
+          onclick="event.stopPropagation();toggleFavFromCard(${gi})">${icon('star')}</button></div>
+      <img class="card-sprite" src="${sprite}" alt="" loading="lazy"
         onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.species_id}.png'">
       <div class="card-name">${name}</div>
-      <div class="card-level">Lv.${p.level||'?'}</div>
+      <div class="card-foot">
+        <span class="card-level">Lv ${p.level||'?'}</span>
+        <span class="card-flags">${icon('sparkles','shiny-flag')}${icon('note','note-flag')}${group.members.length>1?`<span title="${group.members.length} files">×${group.members.length}</span>`:''}</span>
+      </div>
     </div>`;
   }).join('');
 }
 
+// Cards are focusable: Enter or Space opens them like a click
+document.getElementById('pokeGrid').addEventListener('keydown', e=>{
+  if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('poke-card')){e.preventDefault();e.target.click();}
+});
+
 // ── Panel ─────────────────────────────────────────────────────────
 function openPanel(){document.getElementById('detailPanel').classList.add('open');document.getElementById('gridArea').classList.add('panel-open')}
 function closePanel(){
+  // Keep a note that is still being typed when the panel closes
+  if(document.activeElement?.id==='noteText')saveNote();
   document.getElementById('detailPanel').classList.remove('open');
   document.getElementById('gridArea').classList.remove('panel-open');
   if(activeCardIndex!==null){document.getElementById(`card-${activeCardIndex}`)?.classList.remove('active');activeCardIndex=null}
@@ -902,6 +980,7 @@ function selectCard(gi){
   activeCardIndex=gi;
   document.getElementById(`card-${gi}`)?.classList.add('active');
   renderPanel(groupedCards[gi]);
+  document.getElementById('panelBody').scrollTop=0;
   openPanel();
 }
 
@@ -925,11 +1004,16 @@ function cardClicked(gi){
   }
 }
 
-function toggleSelectMode(){
-  selectMode = !selectMode;
+function renderSelectButton(){
   const btn = document.getElementById('btnSelect');
   btn.classList.toggle('selecting', selectMode);
-  btn.textContent = selectMode ? 'Done' : 'Select';
+  btn.setAttribute('aria-pressed', selectMode);
+  btn.innerHTML = selectMode ? icon('check') + 'Done' : icon('select') + 'Select';
+}
+
+function toggleSelectMode(){
+  selectMode = !selectMode;
+  renderSelectButton();
   if(!selectMode){
     bulkClearSelection();
     closePanel();
@@ -1014,7 +1098,7 @@ async function bulkApplyTag(){
     });
   }
 
-  // Refresh grid dots and tag dropdown
+  // Refresh grid note icons and tag dropdown
   rebuildTagDropdown();
   renderGrid();
   // Re-apply selected state (renderGrid wipes it)
@@ -1025,8 +1109,8 @@ async function bulkApplyTag(){
 
   // Flash the apply button as confirmation
   const btn = document.querySelector('.bulk-bar-apply');
-  btn.textContent = '✓ Done';
-  setTimeout(() => btn.textContent = 'APPLY', 1200);
+  btn.textContent = 'Applied';
+  setTimeout(() => btn.textContent = 'Apply', 1200);
 }
 
 function switchVariant(gi,vi){
@@ -1035,59 +1119,81 @@ function switchVariant(gi,vi){
   const cardEl=document.getElementById(`card-${gi}`);
   if(cardEl){
     cardEl.querySelector('.card-sprite').src=getSpriteUrl(p,false);
-    cardEl.querySelector('.card-level').textContent=`Lv.${p.level||'?'}`;
-    const strip=cardEl.querySelector('.shiny-sweep');
-    if(p.shiny&&!strip){const d=document.createElement('div');d.className='shiny-sweep';cardEl.insertBefore(d,cardEl.firstChild);}
-    else if(!p.shiny&&strip)strip.remove();
+    cardEl.querySelector('.card-level').textContent=`Lv ${p.level||'?'}`;
+    cardEl.classList.toggle('is-shiny',!!p.shiny);
   }
   if(activeCardIndex===gi)renderPanel(groupedCards[gi]);
 }
 
-function statColor(v){
-  if(v>=100)return'#39d98a';if(v>=70)return'#82e0aa';
-  if(v>=50)return'#f5c842';if(v>=30)return'#ff7c33';return'#e8304a';
+// ── Stat hexagon ──────────────────────────────────────────────────
+// Six stats make a hexagon. Axes run clockwise from the top in the
+// order the games use: HP, Attack, Defense, Speed, Sp. Def, Sp. Atk.
+const HEX_AXES = [['hp','HP'],['attack','Atk'],['defense','Def'],['speed','Spe'],['special-defense','SpD'],['special-attack','SpA']];
+function hexPoint(k, r){const a=-Math.PI/2+k*Math.PI/3;return [Math.cos(a)*r,Math.sin(a)*r];}
+function statHexagon(base){
+  const R=72, MAX=160;
+  const ring=f=>HEX_AXES.map((_,k)=>hexPoint(k,R*f).map(n=>n.toFixed(1)).join(',')).join(' ');
+  const pts=HEX_AXES.map(([key],k)=>hexPoint(k,R*Math.min(base[key]||0,MAX)/MAX));
+  const labels=HEX_AXES.map(([key,label],k)=>{
+    const [x,y]=hexPoint(k,R+14);
+    const anchor=Math.abs(x)<1?'middle':x>0?'start':'end';
+    return `<text x="${x.toFixed(1)}" y="${(y+3).toFixed(1)}" text-anchor="${anchor}">${label} ${base[key]||0}</text>`;
+  }).join('');
+  const desc=HEX_AXES.map(([key,label])=>`${label} ${base[key]||0}`).join(', ');
+  return `<svg class="stat-hex" viewBox="-120 -100 240 200" role="img" aria-label="Base stats: ${desc}">
+    ${[.25,.5,.75,1].map(f=>`<polygon class="ring" points="${ring(f)}"/>`).join('')}
+    ${HEX_AXES.map((_,k)=>{const [x,y]=hexPoint(k,R);return `<line class="axis" x1="0" y1="0" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;}).join('')}
+    <polygon class="shape" points="${pts.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ')}"/>
+    ${pts.map(([x,y])=>`<circle class="dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2"/>`).join('')}
+    ${labels}</svg>`;
+}
+
+// ── Notes and tags markup (shared by the full and egg panels) ─────
+function tagChipsHtml(tags){
+  return tags.map((t,i)=>
+    `<span class="tag-chip">${t}<button class="tag-chip-remove" onclick="event.stopPropagation();removeTag(${i})" aria-label="Remove tag ${t}">${icon('x')}</button></span>`
+  ).join('');
+}
+function tagInputHtml(){
+  return `<input class="tag-input" id="tagInput" placeholder="Add tag" aria-label="Add tag"
+    onkeydown="handleTagInput(event)"
+    oninput="handleTagInputChange(event)"
+    onblur="handleTagInputBlur()">
+  <div class="tag-autocomplete" id="tagAcDropdown"></div>`;
+}
+function notesSectionHtml(p, placeholder){
+  return `<div class="section">
+      <div class="section-title">Notes and tags<span class="save-status" id="saveStatus" role="status">${icon('check')}Saved</span></div>
+      <textarea class="notes-area" id="noteText" placeholder="${placeholder}" aria-label="Notes" onchange="saveNote()">${p.note||''}</textarea>
+      <div class="tags-input-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
+        ${tagChipsHtml(p.tags||[])}${tagInputHtml()}
+      </div>
+    </div>`;
 }
 
 // ── Render panel ──────────────────────────────────────────────────
 function renderPanel(group){
   const p=group.members[group.activeVariant],api=p.api||{};
-  const name=api.name?api.name.charAt(0).toUpperCase()+api.name.slice(1):`#${p.species_id}`;
-  const dexNo=api.id?`#${String(api.id).padStart(3,'0')}`:`#${p.species_id}`;
+  const name=api.name?capitalise(api.name):`#${p.species_id}`;
+  const dexNo=api.id?`#${String(api.id).padStart(3,'0')}`:`#${String(p.species_id).padStart(3,'0')}`;
   const nick=p.nickname&&p.nickname.toLowerCase()!==(api.name||'')?p.nickname:'';
+  const favBtn=`<button class="icon-btn panel-fav-btn${p.favourite?' fav-active':''}"
+      title="${p.favourite?'Remove from favourites':'Add to favourites'}" aria-pressed="${!!p.favourite}"
+      onclick="toggleFavFromPanel()">${icon('star')}</button>`;
+  const hero=document.getElementById('panelHero');
 
   // EGG — simplified panel
   if(p.is_egg){
-    document.getElementById('panelHero').innerHTML=`
-      <button class="panel-fav-btn${p.favourite?' fav-active':''}"
-        title="${p.favourite?'Remove from favourites':'Add to favourites'}"
-        onclick="toggleFavFromPanel()">⭐</button>
-      <div style="font-size:5rem;margin:18px 0 8px">🥚</div>
-      ${p.shiny?'<div class="shiny-note">✨ SHINY EGG</div>':''}
+    document.getElementById('panelActions').innerHTML=favBtn;
+    hero.style.removeProperty('--tc');
+    hero.innerHTML=`
+      <svg class="icon panel-egg" aria-hidden="true"><use href="#i-egg"/></svg>
       <div class="panel-name">Egg</div>
       <div class="panel-nickname">${name}</div>
-      <div class="panel-dex">Gen ${p.generation} · ${p.origin_game||'Unknown'}</div>
+      <div class="panel-game">Generation ${p.generation} · ${p.origin_game||'Unknown game'}</div>
+      ${p.shiny?`<div class="shiny-note">${icon('sparkles')}Shiny egg</div>`:''}
     `;
-    const currentNote=p.note||'';
-    const currentTags=(p.tags||[]);
-    const tagsHtml=currentTags.map((t,i)=>
-      `<div class="tag-chip">${t}<span class="tag-chip-remove" onclick="removeTag(${i})">✕</span></div>`
-    ).join('');
-    document.getElementById('panelScroll').innerHTML=`
-      <div class="section"><div class="section-title">Notes</div>
-        <textarea class="notes-area" id="noteText" placeholder="Add a note for this egg…">${currentNote}</textarea>
-      </div>
-      <div class="section"><div class="section-title">Tags</div>
-        <div class="tags-input-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
-          ${tagsHtml}
-          <input class="tag-input" id="tagInput" placeholder="Add tag…"
-            onkeydown="handleTagInput(event)"
-            oninput="handleTagInputChange(event)"
-            onblur="handleTagInputBlur()">
-          <div class="tag-autocomplete" id="tagAcDropdown"></div>
-        </div>
-      </div>
-      <button class="save-note-btn" onclick="saveNote()">SAVE</button>
-    `;
+    document.getElementById('panelScroll').innerHTML=notesSectionHtml(p,'Add a note for this egg');
     return;
   }
 
@@ -1097,23 +1203,23 @@ function renderPanel(group){
   const serebiiDex  = String(p.species_id).padStart(3,'0');
   const serebiiUrl  = `https://www.serebii.net/${serebiiPath}/${serebiiDex}.shtml`;
 
-  document.getElementById('panelHero').innerHTML=`
-    <button class="panel-fav-btn${p.favourite?' fav-active':''}"
-      title="${p.favourite?'Remove from favourites':'Add to favourites'}"
-      onclick="toggleFavFromPanel()">⭐</button>
+  document.getElementById('panelActions').innerHTML=`
+    <a class="icon-btn" href="#" title="Show in folder" aria-label="Show file in folder"
+      onclick="openContainingFolder(event,'${p.filename.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">${icon('folder')}</a>
+    <a class="icon-btn" href="${serebiiUrl}" target="_blank" rel="noopener" title="More information on Serebii" aria-label="More information on Serebii">${icon('external')}</a>
+    ${favBtn}`;
+
+  const tc=TYPE_COLORS[(api.types||[])[0]]||'#888';
+  hero.style.setProperty('--tc',tc);
+  hero.innerHTML=`
     <img class="panel-art" src="${getSpriteUrl(p,true)}" alt="${name}"
       onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.species_id}.png'">
-    ${p.shiny?'<div class="shiny-note">✨ SHINY</div>':''}
     <div class="panel-name">${name}</div>
-    ${nick?`<div class="panel-nickname">"${nick}"</div>`:''}
-    <div class="panel-dex">Pokédex ${dexNo} · Gen ${p.generation} · ${p.origin_game||'Unknown'}</div>
+    ${nick?`<div class="panel-nickname">“${nick}”</div>`:''}
+    <div class="panel-dex"><span class="mono">${dexNo}</span>${api.genus?` · ${api.genus}`:''}</div>
+    <div class="panel-game">Generation ${p.generation} · ${p.origin_game||'Unknown game'}</div>
     <div class="panel-types">${(api.types||[]).map(typeBadge).join('')}</div>
-    ${api.genus?`<div class="panel-genus">${api.genus}</div>`:''}
-    <div style="display:flex;align-items:center;gap:6px;margin-top:7px">
-      <a class="serebii-link" style="margin-top:0" href="${serebiiUrl}" target="_blank" rel="noopener">more info ↗</a>
-      <span style="color:var(--border);font-size:.68rem">·</span>
-      <a class="serebii-link" style="margin-top:0" href="#" onclick="openContainingFolder(event,'${p.filename.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">open folder ↗</a>
-    </div>
+    ${p.shiny?`<div class="shiny-note">${icon('sparkles')}Shiny</div>`:''}
   `;
 
   const hM=api.height?(api.height/10).toFixed(1)+' m':'—';
@@ -1121,37 +1227,38 @@ function renderPanel(group){
 
   // VARIANTS
   const variantSection=group.members.length>1?`
-    <div class="variant-section">
-      <div class="variant-section-label">✦ ${group.members.length} Saved Variants</div>
-      <div class="variant-tabs">
+    <div class="section">
+      <div class="section-title">In your collection<span class="meta mono">${group.members.length} files</span></div>
+      <div class="variant-tabs" role="listbox" aria-label="Files for this Pokémon">
         ${group.members.map((m,vi)=>`
-          <div class="variant-tab${vi===group.activeVariant?' active-tab':''}" onclick="switchVariant(${activeCardIndex},${vi})">
-            <div class="variant-tab-lv">Lv.${m.level||'?'}</div>
-            <div class="variant-tab-ot">OT: ${m.ot_name||'—'}${m.shiny?' ✨':''}</div>
-            <div class="variant-tab-file">${m.filename}</div>
+          <div class="variant-tab${vi===group.activeVariant?' active-tab':''}" role="option" tabindex="0" aria-selected="${vi===group.activeVariant}"
+            onclick="switchVariant(${activeCardIndex},${vi})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <div class="variant-tab-lv">Lv ${m.level||'?'}</div>
+            <div class="variant-tab-ot">${m.ot_name||'—'}${m.shiny?icon('sparkles','','role="img" aria-label="Shiny"'):''}</div>
+            <div class="variant-tab-file" title="${m.filename}">${m.filename}</div>
           </div>`).join('')}
       </div>
     </div>`:'';
 
   // EVOLUTION CHAIN
   const evoChain=p.evo_chain||[];
-  let evoHtml='<div style="color:var(--text-mute);font-size:.78rem">No evolution data</div>';
+  let evoHtml='<div class="empty-note">No evolution data</div>';
   if(evoChain.length){
     evoHtml='<div class="evo-chain">';
     evoChain.forEach((node,i)=>{
       if(i>0){
         let sublabel='';
-        if(node.min_level)       sublabel=`Lv.${node.min_level}`;
-        else if(node.trigger==='trade') sublabel='trade';
+        if(node.min_level)       sublabel=`Lv ${node.min_level}`;
+        else if(node.trigger==='trade') sublabel='Trade';
         else if(node.item)       sublabel=node.item.replace(/-/g,' ');
-        evoHtml+=`<div class="evo-arrow"><span>→</span><span class="evo-arrow-label">${sublabel}</span></div>`;
+        evoHtml+=`<div class="evo-arrow">${icon('arrow')}<span class="evo-arrow-label">${sublabel}</span></div>`;
       }
       const isCurrent = node.id === p.species_id;
       // Use cached image if available (same naming convention as backend)
       const spriteUrl = `/cached-image/${node.id}_hd.png`;
       const fallback  = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${node.id}.png`;
       evoHtml+=`<div class="evo-node${isCurrent?' current-evo':''}" title="${node.name} #${node.id}">
-        <img src="${spriteUrl}" alt="${node.name}"
+        <img src="${spriteUrl}" alt=""
           onerror="this.src='${fallback}';this.onerror=null;">
         <div class="evo-node-name">${node.name}</div>
         <div class="evo-node-dex">#${String(node.id).padStart(3,'0')}</div>
@@ -1161,52 +1268,65 @@ function renderPanel(group){
   }
 
   // STATS — calculated actual values for this Pokémon's level/IVs/EVs/nature
-  const STAT_NAMES={hp:'HP',attack:'ATK',defense:'DEF','special-attack':'SP.ATK','special-defense':'SP.DEF',speed:'SPD'};
+  const STAT_NAMES={hp:'HP',attack:'Attack',defense:'Defense','special-attack':'Sp. Atk','special-defense':'Sp. Def',speed:'Speed'};
 
   // Nature tooltip — Gen 1/2 have no nature
   const natureMod = p.nature ? (NATURE_MODS[p.nature] || [null,null]) : [null,null];
   const STAT_DISPLAY = {hp:'HP',attack:'Attack',defense:'Defense',sp_atk:'Sp. Atk',sp_def:'Sp. Def',speed:'Speed'};
   let natureTooltip = '';
   if (!p.nature) {
-    natureTooltip = `<span class="tooltip">Gen 1/2 — no natures</span>`;
+    natureTooltip = `<span class="tooltip">Generations 1 and 2 have no natures</span>`;
   } else if (natureMod[0] && natureMod[1]) {
-    natureTooltip = `<span class="tooltip">+${STAT_DISPLAY[natureMod[0]]||natureMod[0]} / −${STAT_DISPLAY[natureMod[1]]||natureMod[1]}</span>`;
+    natureTooltip = `<span class="tooltip">Raises ${STAT_DISPLAY[natureMod[0]]||natureMod[0]}, lowers ${STAT_DISPLAY[natureMod[1]]||natureMod[1]}</span>`;
   } else {
-    natureTooltip = `<span class="tooltip">Neutral — no stat changes</span>`;
+    natureTooltip = `<span class="tooltip">Neutral, no stat changes</span>`;
   }
   const BASE=api.base_stats||{};
+  const isDV=p.generation<=2;
+  const ivMax=isDV?15:31;
+  let totBase=0,totIV=0,totEV=0;
   const statsRows=Object.entries(STAT_NAMES).map(([key,label])=>{
     const base=BASE[key]||0;
     const ivKey=STAT_KEY_MAP[key];
     const iv  = p.ivs ? (p.ivs[ivKey] ?? 0) : 0;
     const ev  = p.evs ? (p.evs[ivKey] ?? 0) : 0;
     const actual=calcStat(key,base,iv,ev,p.level,p.nature);
-    const pct=Math.min(100,(base/255)*100).toFixed(1);
     const ivDisp = p.ivs ? (p.ivs[ivKey] ?? '?') : '?';
     const evDisp = p.evs ? (p.evs[ivKey] ?? 0)   : 0;
-    return `<div class="stat-row">
-      <div class="stat-name">${label}</div>
-      <div class="stat-base">${base}</div>
-      <div class="stat-bar-wrap"><div class="stat-bar" style="width:0;background:${statColor(base)}" data-pct="${pct}"></div></div>
-      <div class="stat-actual">${actual}</div>
-      <div class="stat-iv">IV${ivDisp}</div>
-      <div class="stat-ev">EV${evDisp}</div>
-    </div>`;
+    totBase+=base; totIV+=typeof ivDisp==='number'?ivDisp:0; totEV+=evDisp||0;
+    const mod = natureMod[0]===ivKey?' up':natureMod[1]===ivKey?' down':'';
+    const modTitle = mod===' up'?' title="Raised by nature"':mod===' down'?' title="Lowered by nature"':'';
+    const ivPct = typeof ivDisp==='number'?Math.min(100,ivDisp/ivMax*100):0;
+    return `<tr>
+      <td>${label}</td>
+      <td>${base}</td>
+      <td class="actual${mod}"${modTitle}>${actual}</td>
+      <td><span class="iv${ivDisp===ivMax?' max':''}"><span class="iv-bar" style="--w:${ivPct.toFixed(0)}%"></span>${String(ivDisp).padStart(2,'\u2007')}</span></td>
+      <td>${evDisp}</td>
+    </tr>`;
   }).join('');
+  const statsHtml=`
+    ${statHexagon(BASE)}
+    <table class="stat-table">
+      <thead><tr><th>Stat</th><th>Base</th><th>Actual</th><th>${isDV?'DV':'IV'}</th><th>EV</th></tr></thead>
+      <tbody>${statsRows}
+        <tr class="total"><td>Total</td><td>${totBase}</td><td></td><td>${totIV}</td><td>${totEV}</td></tr>
+      </tbody>
+    </table>`;
 
   // MOVES
   const movesHtml=(()=>{
     const slots=p.moves_data||[],pp=p.pp||[];
-    if(!slots.length||slots.every(m=>!m))return'<div style="color:var(--text-mute);font-size:.78rem">No move data</div>';
+    if(!slots.length||slots.every(m=>!m))return'<div class="empty-note">No move data</div>';
     return`<div class="moves-grid">${slots.map((m,idx)=>{
       if(!m)return'';
       const ppCur=pp[idx]??m.pp??'—';
-      const dcIcon=m.damage_class==='physical'?'⚔️':m.damage_class==='special'?'✨':'🔵';
+      const dc=m.damage_class?capitalise(m.damage_class):'';
       const tooltip=m.effect?`<span class="tooltip">${m.effect}</span>`:'';
       return`<div class="move-card has-tooltip">
         <div class="move-name">${m.name}${tooltip}</div>
-        <div class="move-meta">${typeBadge(m.type)}<span style="font-size:.6rem;color:var(--text-mute);font-family:'Share Tech Mono',monospace">${dcIcon} ${m.power!=null?'PWR '+m.power:'Status'}</span></div>
-        <div class="move-pp">${m.accuracy!=null?'ACC '+m.accuracy:'—'} · PP ${ppCur}/${m.pp??'—'}</div>
+        <div class="move-meta"><i style="background:${TYPE_COLORS[m.type]||'#888'}"></i>${m.type||'—'}${dc?` · ${dc}`:''}</div>
+        <div class="move-pp">${m.power!=null?'Pow '+m.power+' · ':''}${m.accuracy!=null?'Acc '+m.accuracy+' · ':''}PP ${ppCur}/${m.pp??'—'}</div>
       </div>`;
     }).join('')}</div>`;
   })();
@@ -1214,57 +1334,36 @@ function renderPanel(group){
   // ABILITIES
   const abilitiesHtml = (api.abilities||[]).map(a => {
     const desc = a.description ? `<span class="tooltip">${a.description}</span>` : '';
-    return `<div class="ability-tag has-tooltip${a.hidden?' hidden':''}">
-      ${a.name}${a.hidden?' <span style="opacity:.6;font-size:.65rem">(hidden)</span>':''}
+    return `<div class="ability-tag has-tooltip">
+      ${a.name}${a.hidden?' <small>Hidden</small>':''}
       ${desc}
     </div>`;
-  }).join('') || '<div style="color:var(--text-mute);font-size:.78rem">—</div>';
+  }).join('') || '<div class="empty-note">—</div>';
 
-  // NOTES & TAGS — scoped to this variant file
-  const currentNote=p.note||'';
-  const currentTags=(p.tags||[]);
-  const tagsHtml=currentTags.map((t,i)=>
-    `<div class="tag-chip">${t}<span class="tag-chip-remove" onclick="removeTag(${i})">✕</span></div>`
-  ).join('');
+  const genderCell = p.gender!=null
+    ? `<div class="meta-cell"><div class="meta-cell-label">Gender</div><div class="meta-cell-value">${p.gender==='female'?'♀ Female':'♂ Male'}</div></div>` : '';
+  const itemCell = p.held_item
+    ? `<div class="meta-cell has-tooltip"><div class="meta-cell-label">Held item</div><div class="meta-cell-value">${p.held_item.name}</div>${p.held_item.effect?`<span class="tooltip">${p.held_item.effect}</span>`:''}</div>` : '';
 
   document.getElementById('panelScroll').innerHTML=`
     ${variantSection}
-    ${api.flavour_text?`<div class="flavour-text">${api.flavour_text}</div>`:''}
+    ${api.flavour_text?`<p class="flavour-text">${api.flavour_text}</p>`:''}
     <div class="meta-grid">
-      <div class="meta-cell"><div class="meta-cell-label">Level</div><div class="meta-cell-value">${p.level||'—'}</div></div>
-      <div class="meta-cell has-tooltip"><div class="meta-cell-label">Nature</div><div class="meta-cell-value">${p.nature||'—'}${natureTooltip}</div></div>
-      <div class="meta-cell"><div class="meta-cell-label">OT</div><div class="meta-cell-value">${p.ot_name||'—'}</div></div>
-      <div class="meta-cell"><div class="meta-cell-label">OT ID</div><div class="meta-cell-value">${p.ot_id||'—'}</div></div>
-      <div class="meta-cell"><div class="meta-cell-label">Height</div><div class="meta-cell-value">${hM}</div></div>
-      <div class="meta-cell"><div class="meta-cell-label">Weight</div><div class="meta-cell-value">${wKg}</div></div>
-      ${p.gender!=null?`<div class="meta-cell"><div class="meta-cell-label">Gender</div><div class="meta-cell-value" style="color:${p.gender==='female'?'#f97fb0':'#7fb4f9'}">${p.gender==='female'?'♀ Female':'♂ Male'}</div></div>`:''}
-      ${p.held_item ? `<div class="meta-cell has-tooltip"><div class="meta-cell-label">Held Item</div><div class="meta-cell-value">${p.held_item.name}${p.held_item.effect?`<span class="tooltip">${p.held_item.effect}</span>`:''}</div></div>` : ''}
+      <div class="meta-cell"><div class="meta-cell-label">Level</div><div class="meta-cell-value mono">${p.level||'—'}</div></div>
+      <div class="meta-cell has-tooltip"><div class="meta-cell-label">Nature</div><div class="meta-cell-value">${p.nature||'—'}</div>${natureTooltip}</div>
+      <div class="meta-cell"><div class="meta-cell-label">Trainer</div><div class="meta-cell-value">${p.ot_name||'—'}</div></div>
+      <div class="meta-cell"><div class="meta-cell-label">Trainer ID</div><div class="meta-cell-value mono">${p.ot_id||'—'}</div></div>
+      <div class="meta-cell"><div class="meta-cell-label">Height</div><div class="meta-cell-value mono">${hM}</div></div>
+      <div class="meta-cell"><div class="meta-cell-label">Weight</div><div class="meta-cell-value mono">${wKg}</div></div>
+      ${genderCell}
+      ${itemCell}
     </div>
+    <div class="section" style="--tc:${tc}"><div class="section-title">Stats<span class="meta">Shape shows base stats</span></div>${statsHtml}</div>
     <div class="section"><div class="section-title">Evolution</div>${evoHtml}</div>
-    <div class="section"><div class="section-title">Stats</div>
-      <div class="stats-legend"><span>BASE</span><span style="margin-left:auto;margin-right:8px">ACTUAL · ${p.generation<=2?'DV (max 15)':'IV'} · EV</span></div>
-      ${statsRows}</div>
     <div class="section"><div class="section-title">Moves</div>${movesHtml}</div>
     ${p.generation>=3?`<div class="section"><div class="section-title">Abilities</div><div class="ability-list">${abilitiesHtml}</div></div>`:''}
-    <div class="section"><div class="section-title">Notes</div>
-      <textarea class="notes-area" id="noteText" placeholder="Add a note for this variant…">${currentNote}</textarea>
-    </div>
-    <div class="section"><div class="section-title">Tags</div>
-      <div class="tags-input-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
-        ${tagsHtml}
-        <input class="tag-input" id="tagInput" placeholder="Add tag, press Enter…"
-          onkeydown="handleTagInput(event)"
-          oninput="handleTagInputChange(event)"
-          onblur="handleTagInputBlur()">
-        <div class="tag-autocomplete" id="tagAcDropdown"></div>
-      </div>
-      <button class="save-note-btn" id="saveNoteBtn" onclick="saveNote()">SAVE NOTE & TAGS</button>
-    </div>
+    ${notesSectionHtml(p,'Add a note for this file')}
   `;
-
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    document.querySelectorAll('.stat-bar[data-pct]').forEach(b=>{b.style.width=b.dataset.pct+'%'});
-  }));
 }
 
 // ── Notes & Tags logic ────────────────────────────────────────────
@@ -1314,6 +1413,7 @@ function selectAcTag(tag){
   if(!p.tags.includes(tag))p.tags.push(tag);
   refreshTagsUI(p);
   hideAutocomplete();
+  saveNote();
 }
 
 function commitTag(raw){
@@ -1325,6 +1425,7 @@ function commitTag(raw){
   });
   refreshTagsUI(p);
   hideAutocomplete();
+  saveNote();
 }
 
 function handleTagInputChange(e){
@@ -1333,7 +1434,13 @@ function handleTagInputChange(e){
 
 function handleTagInputBlur(){
   // Small delay so onclick on dropdown items fires first
-  setTimeout(hideAutocomplete,150);
+  setTimeout(()=>{
+    hideAutocomplete();
+    // Save a typed-but-not-entered tag. If another card was opened, the
+    // input has been re-rendered empty, so nothing lands on the wrong file.
+    const input=document.getElementById('tagInput');
+    if(input&&input.value.trim()&&document.activeElement!==input)saveNote();
+  },150);
 }
 
 function handleTagInput(e){
@@ -1360,18 +1467,18 @@ function handleTagInput(e){
     e.preventDefault();
     if(acIndex>=0&&items[acIndex]){
       selectAcTag(items[acIndex].dataset.tag);
-      e.target.value='';
+      document.getElementById('tagInput')?.focus();
       return;
     }
     if(items.length===1){
       selectAcTag(items[0].dataset.tag);
-      e.target.value='';
+      document.getElementById('tagInput')?.focus();
       return;
     }
     const raw=e.target.value.trim();
     if(!raw)return;
     commitTag(raw);
-    e.target.value='';
+    document.getElementById('tagInput')?.focus();
     return;
   }
 }
@@ -1394,48 +1501,50 @@ function removeTag(idx){
   if(!p||!p.tags)return;
   p.tags.splice(idx,1);
   refreshTagsUI(p);
+  saveNote();
 }
 
 function refreshTagsUI(p){
   const wrap=document.getElementById('tagsWrap');
   if(!wrap)return;
-  wrap.innerHTML=(p.tags||[]).map((t,i)=>
-    `<div class="tag-chip">${t}<span class="tag-chip-remove" onclick="removeTag(${i})">✕</span></div>`
-  ).join('')+
-  `<input class="tag-input" id="tagInput" placeholder="Add tag…"
-    onkeydown="handleTagInput(event)"
-    oninput="handleTagInputChange(event)"
-    onblur="handleTagInputBlur()">
-  <div class="tag-autocomplete" id="tagAcDropdown"></div>`;
-  // Update grid card dot
+  wrap.innerHTML=tagChipsHtml(p.tags||[])+tagInputHtml();
+  // Update the grid card's note icon
   if(activeCardIndex!==null){
     const group=groupedCards[activeCardIndex];
     const hasNote=group.members.some(m=>m.note||m.tags?.length);
-    const cardEl=document.getElementById(`card-${activeCardIndex}`);
-    if(cardEl){
-      const dot=cardEl.querySelector('.has-note-dot');
-      if(hasNote&&!dot){const d=document.createElement('div');d.className='has-note-dot';d.title='Has notes/tags';cardEl.appendChild(d);}
-      else if(!hasNote&&dot)dot.remove();
-    }
+    document.getElementById(`card-${activeCardIndex}`)?.classList.toggle('has-note',hasNote);
   }
 }
 
+// Notes and tags save automatically: when the note field loses focus,
+// and whenever a tag is added or removed.
+let _saveStatusTimer=null;
 async function saveNote(){
   const p=getCurrentVariant();
   if(!p)return;
   flushPendingTag(); // commit any typed-but-not-entered tag
   const noteText=document.getElementById('noteText')?.value||'';
   p.note=noteText;
-  const btn=document.getElementById('saveNoteBtn');
+  const status=document.getElementById('saveStatus');
   try{
-    await fetch('/api/notes',{
+    const res=await fetch('/api/notes',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({filename:p.filename,note:noteText,tags:p.tags||[],favourite:p.favourite||false})
     });
-    if(btn){btn.textContent='✓ SAVED';btn.classList.add('saved');setTimeout(()=>{btn.textContent='SAVE NOTE & TAGS';btn.classList.remove('saved')},1800)}
-    refreshTagsUI(p);
-  }catch(e){if(btn)btn.textContent='ERROR — try again'}
+    if(!res.ok)throw new Error('Save failed');
+    if(status&&getCurrentVariant()===p){
+      status.classList.remove('error');
+      status.innerHTML=icon('check')+'Saved';
+      status.classList.add('show');
+      clearTimeout(_saveStatusTimer);
+      _saveStatusTimer=setTimeout(()=>status.classList.remove('show'),1800);
+    }
+    if(getCurrentVariant()===p)refreshTagsUI(p);
+    rebuildTagDropdown();
+  }catch(e){
+    if(status){status.classList.add('show','error');status.textContent='Not saved, try again';}
+  }
 }
 
 // ── Favourite toggling ─────────────────────────────────────────────
@@ -1455,13 +1564,14 @@ function _updateFavUI(gi){
   const cardEl=document.getElementById(`card-${gi}`);
   if(cardEl){
     const star=cardEl.querySelector('.fav-star');
-    if(star){star.classList.toggle('fav-active',anyFav);}
+    if(star){star.classList.toggle('fav-active',anyFav);star.setAttribute('aria-pressed',anyFav);}
   }
   // Update panel button if open
   const btn=document.querySelector('.panel-fav-btn');
   if(btn&&activeCardIndex===gi){
     const p=group.members[group.activeVariant];
     btn.classList.toggle('fav-active',p.favourite);
+    btn.setAttribute('aria-pressed',!!p.favourite);
     btn.title=p.favourite?'Remove from favourites':'Add to favourites';
   }
   // Re-apply filters if favourites filter is active
@@ -1483,14 +1593,16 @@ async function toggleFavFromPanel(){
   const p=group.members[group.activeVariant];
   p.favourite=!p.favourite;
   _updateFavUI(activeCardIndex);
-  // Re-render hero to flip the button state
-  renderPanel(group);
   await _saveFavourite(p);
 }
 
 // ── Keyboard ──────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel()});
 document.getElementById('dirInput').addEventListener('keydown',e=>{if(e.key==='Enter')scanDirectory()});
+
+// Initial labels for buttons whose contents are set from script
+renderSelectButton();
+renderActiveTagChips();
 
 // Restore last used directory on page load
 loadLastDir();

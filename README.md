@@ -17,7 +17,7 @@ Supports `.pk1` through `.pk7` files, covering Generations 1–7. HexDex views e
 - Follow generation-specific links to Serebii for more information.
 - Reuse locally cached Pokémon data and artwork after the initial download.
 - Follow scan progress in a compact activity panel beneath the loading message.
-- Find the installed build version beneath the HEXDEX logo.
+- Find the installed build version beside the HexDex logo.
 
 ## Screenshots
 
@@ -65,21 +65,21 @@ During a scan, a small panel appears beneath the loading message in the centre o
 
 **Scan activity** shows the four most recent events, including download failures. You can collapse it for a quieter display. The panel disappears when the collection loads and remains visible if the scan fails.
 
-First scans can take longer because HexDex downloads species information, moves, abilities, evolution chains, and artwork sequentially. The file count advances when each file finishes processing, so it may pause while several downloads complete for one Pokémon. The SCAN button is disabled during a scan to prevent overlapping scans.
+First scans can take longer because HexDex downloads species information, moves, abilities, evolution chains, and artwork sequentially. The file count advances when each file finishes processing, so it may pause while several downloads complete for one Pokémon. The **Scan** button is disabled during a scan to prevent overlapping scans.
 
 ### Build version
 
-The small label beneath the **HEXDEX** logo shows the packaged release version, for example `v1.8.5`. Local Python runs show **Development build**. Draft and public packages carry the same version; publishing a draft does not change its contents.
+The small label beside the **HexDex** logo shows the packaged release version, for example `v1.8.5`. Local Python runs show **Development build**. Draft and public packages carry the same version; publishing a draft does not change its contents.
 
 ### Notes, tags, and favourites
 
-Each exported file has its own notes, tags, and favourite status. Use the detail panel to edit notes and tags, then click **Save**. To tag several Pokémon at once, enter selection mode, select their cards, and apply a tag.
+Each exported file has its own notes, tags, and favourite status. Use the detail panel to edit notes and tags; they save automatically when you leave the note field or add or remove a tag, and a **Saved** label confirms it. To tag several Pokémon at once, click **Select**, choose their cards, and apply a tag.
 
 Keep filenames unique across scanned subfolders: personal annotations are currently associated with filenames, so files sharing the same name can share annotations.
 
 ### CSV export
 
-Click **CSV** to export the loaded collection. Choose where to save the file using the Save As dialog. The export includes Pokémon details, stats, moves, notes, tags, and favourites.
+Click **Export CSV** to export the loaded collection. Choose where to save the file using the Save As dialog. The export includes Pokémon details, stats, moves, notes, tags, and favourites.
 
 ## Your data
 
