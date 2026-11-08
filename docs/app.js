@@ -13,45 +13,50 @@ const TYPE = {
   dark: "#8A8780", steel: "#B8B8D0", fairy: "#F0A0FF",
 };
 
-/* Generic creature silhouettes in a hexagon window, in the type colour. No game artwork. */
+/* Generic creature silhouettes in the app icon's style: a solid hexagon in the type colour with
+   a dark shape built from smooth ellipses. Every shape shares the icon's round body. No game artwork. */
+const INK = "#141415";
+const BODY = '<ellipse cx="50" cy="60" rx="20" ry="18"/>';
+const pair = (x, y, rx, ry, deg) =>
+  `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" transform="rotate(${deg} ${x} ${y})"/>` +
+  `<ellipse cx="${100 - x}" cy="${y}" rx="${rx}" ry="${ry}" transform="rotate(${-deg} ${100 - x} ${y})"/>`;
 const SHAPES = {
-  round: '<ellipse cx="50" cy="60" rx="19" ry="16"/><ellipse cx="37" cy="40" rx="6" ry="10" transform="rotate(-20 37 40)"/><ellipse cx="63" cy="40" rx="6" ry="10" transform="rotate(20 63 40)"/>',
-  bird: '<ellipse cx="46" cy="58" rx="18" ry="14"/><circle cx="63" cy="40" r="10"/><path d="M71 37l9 4-9 4z"/><path d="M30 54l-12-8 6 18z"/>',
-  dino: '<ellipse cx="45" cy="60" rx="17" ry="13"/><circle cx="62" cy="40" r="11"/><path d="M30 58l-14 12 16-2z"/><rect x="38" y="68" width="6" height="12" rx="3"/><rect x="50" y="68" width="6" height="12" rx="3"/>',
-  blob: '<ellipse cx="50" cy="62" rx="22" ry="15"/><circle cx="50" cy="45" r="13"/><path d="M41 36l-4-12 9 8zM59 36l4-12-9 8z"/>',
-  serpent: '<path d="M30 72c0-12 22-10 22-22S38 36 44 28c4-5 14-4 16 2" fill="none" stroke-width="10" stroke-linecap="round"/><circle cx="61" cy="30" r="8"/>',
-  biped: '<ellipse cx="50" cy="56" rx="12" ry="15"/><circle cx="50" cy="34" r="10"/><path d="M42 30l-8-12 12 6zM58 30l8-12-12 6z"/><rect x="42" y="66" width="6" height="14" rx="3"/><rect x="52" y="66" width="6" height="14" rx="3"/>',
-  egg: '<path d="M50 26c11 0 18 16 18 27 0 11-8 17-18 17s-18-6-18-17c0-11 7-27 18-27z"/>',
+  round: BODY + pair(36.5, 40, 6.7, 10.5, -20),
+  pointed: BODY + pair(35, 38, 5, 13, -14),
+  horned: BODY + pair(41, 35, 3, 11, -8),
+  bear: '<ellipse cx="50" cy="58" rx="24" ry="20"/>' + pair(34, 40, 6, 6, 0),
+  crest: BODY + '<ellipse cx="50" cy="33" rx="4" ry="10"/>' + pair(39, 37, 3.5, 8.5, -26),
+  winged: BODY + '<ellipse cx="50" cy="36" rx="4" ry="8"/>' + pair(26, 52, 12, 6.5, 28),
+  finned: BODY + '<ellipse cx="50" cy="33" rx="5" ry="11"/>' + pair(27, 64, 8.5, 4.5, -22),
+  egg: '<path d="M50 24c11 0 19 17 19 29 0 12-8 19-19 19s-19-7-19-19c0-12 8-29 19-29z"/>',
 };
-const HEX = "50,6 88,28 88,72 50,94 12,72 12,28";
+const HEX = "50,10 84.6,30 84.6,70 50,90 15.4,70 15.4,30";
 function art(shape, type) {
   const c = TYPE[type] || "#888";
-  const body = SHAPES[shape];
-  const stroke = shape === "serpent" ? ` stroke="${c}"` : "";
-  return `<svg class="art" viewBox="0 0 100 100" aria-hidden="true"><polygon points="${HEX}" fill="${c}" fill-opacity=".14" stroke="${c}" stroke-opacity=".35" stroke-width="2" stroke-linejoin="round"/><g fill="${c}"${stroke}>${body}</g></svg>`;
+  return `<svg class="art" viewBox="0 0 100 100" aria-hidden="true"><polygon points="${HEX}" fill="${c}" stroke="${c}" stroke-width="10" stroke-linejoin="round"/><g fill="${INK}">${SHAPES[shape]}</g></svg>`;
 }
 const icon = (id, cls = "") => `<svg class="ic ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
 
 /* ---- Hero: collection grid with filters ---- */
 const COLLECTION = [
-  { id: 1, name: "Bulbasaur", gen: 4, lv: 14, type: "grass", shape: "round" },
-  { id: 6, name: "Charizard", gen: 4, lv: 62, type: "fire", shape: "dino", shiny: true, fav: true, note: true, files: 2 },
+  { id: 1, name: "Bulbasaur", gen: 4, lv: 14, type: "grass", shape: "bear" },
+  { id: 6, name: "Charizard", gen: 4, lv: 62, type: "fire", shape: "winged", shiny: true, fav: true, note: true, files: 2 },
   { id: 25, name: "Pikachu", gen: 4, lv: 34, type: "electric", shape: "round" },
-  { id: 59, name: "Arcanine", gen: 4, lv: 55, type: "fire", shape: "round" },
-  { id: 94, name: "Gengar", gen: 4, lv: 58, type: "ghost", shape: "blob" },
-  { id: 130, name: "Gyarados", gen: 4, lv: 48, type: "water", shape: "serpent", shiny: true, fav: true, note: true },
-  { id: 131, name: "Lapras", gen: 4, lv: 40, type: "water", shape: "serpent" },
+  { id: 59, name: "Arcanine", gen: 4, lv: 55, type: "fire", shape: "pointed" },
+  { id: 94, name: "Gengar", gen: 4, lv: 58, type: "ghost", shape: "pointed" },
+  { id: 130, name: "Gyarados", gen: 4, lv: 48, type: "water", shape: "finned", shiny: true, fav: true, note: true },
+  { id: 131, name: "Lapras", gen: 4, lv: 40, type: "water", shape: "finned" },
   { id: 133, name: "Egg (Eevee)", gen: 4, lv: 1, type: "normal", shape: "egg", egg: true },
-  { id: 143, name: "Snorlax", gen: 4, lv: 50, type: "normal", shape: "blob" },
-  { id: 149, name: "Dragonite", gen: 4, lv: 64, type: "dragon", shape: "dino" },
-  { id: 150, name: "Mewtwo", gen: 4, lv: 70, type: "psychic", shape: "biped", legend: true, note: true },
-  { id: 197, name: "Umbreon", gen: 4, lv: 44, type: "dark", shape: "round" },
-  { id: 249, name: "Lugia", gen: 4, lv: 45, type: "psychic", shape: "bird", legend: true },
-  { id: 445, name: "Garchomp", gen: 4, lv: 66, type: "dragon", shape: "dino", fav: true, note: true },
-  { id: 448, name: "Lucario", gen: 4, lv: 48, type: "fighting", shape: "biped", note: true },
-  { id: 658, name: "Greninja", gen: 6, lv: 60, type: "water", shape: "biped", fav: true, note: true },
+  { id: 143, name: "Snorlax", gen: 4, lv: 50, type: "normal", shape: "bear" },
+  { id: 149, name: "Dragonite", gen: 4, lv: 64, type: "dragon", shape: "winged" },
+  { id: 150, name: "Mewtwo", gen: 4, lv: 70, type: "psychic", shape: "horned", legend: true, note: true },
+  { id: 197, name: "Umbreon", gen: 4, lv: 44, type: "dark", shape: "pointed" },
+  { id: 249, name: "Lugia", gen: 4, lv: 45, type: "psychic", shape: "winged", legend: true },
+  { id: 445, name: "Garchomp", gen: 4, lv: 66, type: "dragon", shape: "crest", fav: true, note: true },
+  { id: 448, name: "Lucario", gen: 4, lv: 48, type: "fighting", shape: "pointed", note: true },
+  { id: 658, name: "Greninja", gen: 6, lv: 60, type: "water", shape: "crest", fav: true, note: true },
   { id: 700, name: "Sylveon", gen: 6, lv: 42, type: "fairy", shape: "round" },
-  { id: 716, name: "Xerneas", gen: 6, lv: 50, type: "fairy", shape: "bird", legend: true },
+  { id: 716, name: "Xerneas", gen: 6, lv: 50, type: "fairy", shape: "horned", legend: true },
 ];
 const pad = n => String(n).padStart(3, "0");
 const grid = document.getElementById("appGrid");
@@ -74,11 +79,13 @@ function applyFilters(animate) {
   COLLECTION.forEach((p, i) => {
     const keep = [...active].every(f => p[f]);
     const card = cards[i];
+    const wasOut = card.classList.contains("out");
     card.classList.toggle("out", !keep);
     card.classList.toggle("over", keep && shown >= limit);
     if (keep) {
       shown++;
-      if (animate) { card.classList.remove("enter"); void card.offsetWidth; card.classList.add("enter"); }
+      // Only cards coming back animate; cards already on screen stay still.
+      if (animate && wasOut) { card.classList.remove("enter"); void card.offsetWidth; card.classList.add("enter"); }
     }
   });
   const total = COLLECTION.filter(p => [...active].every(f => p[f])).length;
@@ -97,7 +104,7 @@ chips.forEach(chip => chip.addEventListener("click", () => {
 applyFilters(false);
 
 /* A short tour of the filters until the visitor clicks one. */
-const TOUR = [[], ["shiny"], [], ["fav"], [], ["legend"], [], ["egg"]];
+const TOUR = [[], [], ["shiny"], [], [], ["fav"], [], [], ["legend"]];
 let tourStep = 0;
 
 /* ---- Stat hexagon ---- */
@@ -166,11 +173,11 @@ showMon(MONS[0], false);
 
 /* ---- Evolution chains ---- */
 const CHAINS = [
-  { current: 2, nodes: [["Charmander", 4, "fire", "dino"], ["Charmeleon", 5, "fire", "dino"], ["Charizard", 6, "fire", "dino"]], how: ["Lv 16", "Lv 36"] },
+  { current: 2, nodes: [["Charmander", 4, "fire", "crest"], ["Charmeleon", 5, "fire", "crest"], ["Charizard", 6, "fire", "winged"]], how: ["Lv 16", "Lv 36"] },
   { current: 1, nodes: [["Pichu", 172, "electric", "round"], ["Pikachu", 25, "electric", "round"], ["Raichu", 26, "electric", "round"]], how: ["Friendship", "Thunder Stone"] },
-  { current: 2, nodes: [["Gastly", 92, "ghost", "blob"], ["Haunter", 93, "ghost", "blob"], ["Gengar", 94, "ghost", "blob"]], how: ["Lv 25", "Trade"] },
-  { current: 2, nodes: [["Gible", 443, "dragon", "dino"], ["Gabite", 444, "dragon", "dino"], ["Garchomp", 445, "dragon", "dino"]], how: ["Lv 24", "Lv 48"] },
-  { current: 0, nodes: [["Froakie", 656, "water", "round"], ["Frogadier", 657, "water", "biped"], ["Greninja", 658, "water", "biped"]], how: ["Lv 16", "Lv 36"] },
+  { current: 2, nodes: [["Gastly", 92, "ghost", "bear"], ["Haunter", 93, "ghost", "pointed"], ["Gengar", 94, "ghost", "pointed"]], how: ["Lv 25", "Trade"] },
+  { current: 2, nodes: [["Gible", 443, "dragon", "crest"], ["Gabite", 444, "dragon", "crest"], ["Garchomp", 445, "dragon", "crest"]], how: ["Lv 24", "Lv 48"] },
+  { current: 0, nodes: [["Froakie", 656, "water", "round"], ["Frogadier", 657, "water", "crest"], ["Greninja", 658, "water", "crest"]], how: ["Lv 16", "Lv 36"] },
 ];
 let evoIndex = 0;
 const evoEl = document.getElementById("evo");

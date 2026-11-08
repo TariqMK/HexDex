@@ -82,9 +82,13 @@ h1{font-size:64px;line-height:1.05;font-weight:600;letter-spacing:-.025em}
 .card-top .ic.on{opacity:1;color:var(--fav);fill:var(--fav)}
 .art{display:block;width:72%;max-width:96px;aspect-ratio:1;margin:4px auto}
 .card-name{font-size:13px;font-weight:500;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card-foot{display:flex;justify-content:center;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-3);height:16px}
+.card-foot{display:flex;justify-content:center;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-3);height:16px;white-space:nowrap;overflow:hidden}
 .card-foot .ic{width:12px;height:12px}
 .card-foot .shiny{color:var(--fav)}
+
+/* Note under the hero preview */
+.preview-note{padding-top:20px;text-align:center;font-size:14px;color:var(--text-3);text-wrap:balance}
+.preview-note + .principles{padding-top:72px}
 
 /* Principles */
 .principles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:48px;padding-top:96px;padding-bottom:96px}
@@ -180,8 +184,11 @@ h1{font-size:64px;line-height:1.05;font-weight:600;letter-spacing:-.025em}
   .nav-links{display:none}
   .nav-row .btn{margin-left:auto}
   .hero{padding-top:56px}
-  h1{font-size:40px}
+  h1{font-size:32px}
   .lede{font-size:16px}
+  .meta{font-size:12px;text-wrap:balance}
+  .motif{top:32px;width:300px;height:418px}
+  .card-foot .ic:not(.shiny){display:none}
   .window{margin-top:40px;border-radius:12px 12px 0 0}
   .hide-sm{display:none}
   .app-bar{gap:8px;padding:0 12px}
@@ -193,6 +200,7 @@ h1{font-size:64px;line-height:1.05;font-weight:600;letter-spacing:-.025em}
   .app-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px;min-height:420px}
   .card{padding:8px}
   .principles{grid-template-columns:minmax(0,1fr);gap:32px;padding-top:64px;padding-bottom:64px}
+  .preview-note + .principles{padding-top:48px}
   .section-title{font-size:30px}
   .panels{grid-template-columns:minmax(0,1fr)}
   .panel{padding:20px}
