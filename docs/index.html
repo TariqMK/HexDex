@@ -35,6 +35,8 @@
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
   <symbol id="i-down" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
   <symbol id="i-note" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
 </svg>
 
@@ -69,7 +71,7 @@
     </div>
 
     <div class="wrap">
-      <div class="window" id="preview" aria-label="Live preview of the HexDex collection view with sample Pokémon">
+      <div class="window" id="preview" aria-label="Live preview of HexDex with sample Pokémon, switching between the collection view and the detail panel">
         <div class="app-bar">
           <span class="app-brand"><img src="icon.svg" alt="" width="18" height="18">HexDex <span class="app-ver" id="appVer">v3.0.0</span></span>
           <span class="app-path"><svg class="ic"><use href="#i-folder"/></svg>C:\Users\Alex\Documents\PKHeX\Exports</span>
@@ -87,7 +89,35 @@
           <button class="chip" type="button" data-filter="egg" aria-pressed="false"><svg class="ic"><use href="#i-egg"/></svg><span>Egg</span></button>
           <span class="app-count" id="appCount">18 Pokémon</span>
         </div>
-        <div class="app-grid" id="appGrid"></div>
+        <div class="app-main" id="appMain">
+          <div class="app-grid" id="appGrid"></div>
+          <aside class="app-panel" id="appPanel" aria-label="Detail panel for a sample Charizard">
+            <div class="panel-bar">
+              <svg class="ic"><use href="#i-x"/></svg>
+              <span class="panel-bar-end"><svg class="ic"><use href="#i-folder"/></svg><svg class="ic"><use href="#i-ext"/></svg><svg class="ic on"><use href="#i-star"/></svg></span>
+            </div>
+            <div class="panel-body">
+              <div class="panel-hero">
+                <div id="panelArt"></div>
+                <div class="panel-title">Charizard</div>
+                <div class="panel-sub">“Blaze”</div>
+                <div class="panel-sub"><span class="mono">#006</span> · Flame Pokémon</div>
+                <div class="panel-sub muted">Generation 4 · SoulSilver</div>
+                <div class="types"><span class="type"><i style="background:#FF7C33"></i>fire</span><span class="type"><i style="background:#8899D4"></i>flying</span></div>
+                <div class="panel-sub panel-shiny"><svg class="ic"><use href="#i-spark"/></svg>Shiny</div>
+              </div>
+              <div class="panel-head"><span>In your collection</span><span class="mono muted">2 files</span></div>
+              <div class="panel-files">
+                <div class="on"><span class="mono">Lv 62</span><span>Alex</span><span class="mono muted">006 - Charizard - 9E2…</span></div>
+                <div><span class="mono">Lv 48</span><span>Mira</span><span class="mono muted">006 - Charizard - 51D…</span></div>
+              </div>
+              <dl class="panel-facts">
+                <div><dt>Level</dt><dd>62</dd></div><div><dt>Nature</dt><dd>Timid</dd></div>
+                <div><dt>Trainer</dt><dd>Alex</dd></div><div><dt>Trainer ID</dt><dd>24816</dd></div>
+              </dl>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   </section>

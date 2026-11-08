@@ -61,7 +61,7 @@ const COLLECTION = [
 const pad = n => String(n).padStart(3, "0");
 const grid = document.getElementById("appGrid");
 grid.innerHTML = COLLECTION.map(p => `
-  <div class="card${p.name === "Charizard" ? " active" : ""}" data-id="${p.id}">
+  <div class="card" data-id="${p.id}">
     <div class="card-top"><span>#${pad(p.id)} · G${p.gen}</span>${icon("star", p.fav ? "on" : "")}</div>
     ${art(p.shape, p.type)}
     <div class="card-name">${p.name}</div>
@@ -75,7 +75,7 @@ let active = new Set();
 
 function applyFilters(animate) {
   let shown = 0;
-  const limit = small.matches ? 9 : 18;
+  const limit = small.matches ? 12 : 18;
   COLLECTION.forEach((p, i) => {
     const keep = [...active].every(f => p[f]);
     const card = cards[i];
@@ -94,18 +94,22 @@ function applyFilters(animate) {
 }
 small.addEventListener("change", () => applyFilters(false));
 
-let userTookOver = false;
 chips.forEach(chip => chip.addEventListener("click", () => {
-  userTookOver = true;
   const f = chip.dataset.filter;
   active.has(f) ? active.delete(f) : active.add(f);
   applyFilters(true);
 }));
 applyFilters(false);
 
-/* A short tour of the filters until the visitor clicks one. */
-const TOUR = [[], [], ["shiny"], [], [], ["fav"], [], [], ["legend"]];
-let tourStep = 0;
+/* The same collection with and without the detail panel, as when you select a card in the app. */
+const appMain = document.getElementById("appMain");
+const charizardCard = cards[COLLECTION.findIndex(p => p.name === "Charizard")];
+document.getElementById("panelArt").innerHTML = art("winged", "fire");
+function setPanel(open) {
+  appMain.classList.toggle("open", open);
+  charizardCard.classList.toggle("active", open);
+  if (!STILL) grid.animate([{ opacity: .5 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
+}
 
 /* ---- Stat hexagon ---- */
 const AXES = [["hp", "HP"], ["atk", "Atk"], ["def", "Def"], ["spe", "Spe"], ["spd", "SpD"], ["spa", "SpA"]];
@@ -241,7 +245,7 @@ if (STILL) {
     if (document.hidden) return;
     tick++;
     scanTick();
-    if (tick % 3 === 0 && !userTookOver) { tourStep = (tourStep + 1) % TOUR.length; active = new Set(TOUR[tourStep]); applyFilters(true); }
+    if (tick % 5 === 0) setPanel(!appMain.classList.contains("open"));
     if (tick % 4 === 0) { hexIndex = (hexIndex + 1) % MONS.length; showMon(MONS[hexIndex], true); }
     if (tick % 5 === 2) { evoIndex = (evoIndex + 1) % CHAINS.length; showChain(CHAINS[evoIndex], true); }
   }, 1000);

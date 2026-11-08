@@ -68,7 +68,34 @@ h1{font-size:64px;line-height:1.05;font-weight:600;letter-spacing:-.025em}
 .chip[aria-pressed="true"] .ic{color:var(--text)}
 .chip[data-filter="fav"][aria-pressed="true"] .ic{color:var(--fav);fill:var(--fav)}
 .app-count{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--text-3);white-space:nowrap;padding-left:8px}
-.app-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;padding:16px;min-height:540px;align-content:start}
+/* Fixed height: the window stays the same size in both views and with any filter. */
+.app-main{position:relative;height:652px;overflow:hidden}
+.app-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;padding:16px;align-content:start}
+.app-main.open .app-grid{margin-right:360px;grid-template-columns:repeat(auto-fill,minmax(148px,1fr))}
+.app-panel{position:absolute;top:0;right:0;bottom:0;width:360px;background:var(--deep);border-left:1px solid var(--line-strong);overflow:hidden;transform:translateX(100%);visibility:hidden;
+  transition:transform .35s var(--ease),visibility .35s}
+.app-main.open .app-panel{transform:none;visibility:visible}
+.panel-bar{display:flex;justify-content:space-between;align-items:center;height:48px;padding:0 16px;border-bottom:1px solid var(--line);color:var(--text-3)}
+.panel-bar-end{display:flex;gap:16px}
+.panel-bar .on{color:var(--fav);fill:var(--fav)}
+.panel-body{padding:16px;font-size:13px}
+.panel-hero{display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 16px;border:1px solid color-mix(in srgb,#FF7C33 30%,transparent);border-radius:12px;background:color-mix(in srgb,#FF7C33 14%,var(--deep));text-align:center}
+.panel-hero .art{width:112px;max-width:none;margin:0 0 8px}
+.panel-title{font-size:28px;line-height:1.2;font-weight:600}
+.panel-sub{color:var(--text-2)}
+.panel-hero .types{margin:8px 0 4px}
+.panel-shiny{display:inline-flex;align-items:center;gap:6px}
+.panel-shiny .ic{color:var(--fav)}
+.panel-head{display:flex;justify-content:space-between;margin-top:20px;font-weight:500}
+.panel-head .mono{font-size:12px;font-weight:400}
+.panel-files{margin-top:8px;padding:4px;border:1px solid var(--line);border-radius:10px}
+.panel-files>div{display:grid;grid-template-columns:48px 40px minmax(0,1fr);gap:8px;align-items:center;height:32px;padding:0 8px;border-radius:6px;font-size:12px}
+.panel-files>div.on{background:var(--raised)}
+.panel-files .muted{font-size:11px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;margin-top:16px}
+.panel-facts>div{display:flex;justify-content:space-between;height:32px;align-items:center;border-bottom:1px solid var(--line)}
+.panel-facts dt{color:var(--text-3)}
+.panel-facts dd{font-family:var(--mono)}
 
 /* Collection cards (mirror the app's .poke-card) */
 .card{display:flex;flex-direction:column;gap:4px;padding:12px;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:12px;
@@ -197,7 +224,10 @@ h1{font-size:64px;line-height:1.05;font-weight:600;letter-spacing:-.025em}
   .app-filters::-webkit-scrollbar{display:none}
   .chip{padding:0 10px}
   .chip span{display:none}
-  .app-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px;min-height:420px}
+  .app-main{height:540px}
+  .app-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px}
+  .app-main.open .app-grid{margin-right:0;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .app-panel{width:100%;border-left:0}
   .card{padding:8px}
   .principles{grid-template-columns:minmax(0,1fr);gap:32px;padding-top:64px;padding-bottom:64px}
   .preview-note + .principles{padding-top:48px}
