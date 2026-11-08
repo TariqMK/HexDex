@@ -4,6 +4,8 @@ A desktop viewer for your personal Pokémon collection. HexDex reads individual 
 
 Supports `.pk1` through `.pk7` files, covering Generations 1–7. HexDex views exported files; it does not edit them or open complete game saves.
 
+Website: [tariqmk.github.io/HexDex](https://tariqmk.github.io/HexDex/)
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/collection-dark.png">
   <img src="docs/images/collection-light.png" alt="HexDex collection view: the folder bar, search and filters, and a grid of Pokémon cards with artwork, level and favourite stars" width="840">
@@ -109,6 +111,8 @@ HexDex connects to the internet only for these features:
 - **Serebii links:** open serebii.net in your browser when you select them.
 - **Check for updates:** when you select the version number, the app asks GitHub (api.github.com) for the latest release. It sends nothing else and nothing is downloaded.
 
+The HexDex website loads no third-party fonts, analytics, or trackers. It asks GitHub (api.github.com) for the latest release to show the version and download links.
+
 ## Current limitations
 
 - Supported inputs are PKHeX-exported `.pk1`–`.pk7` files; later generations and complete save files are not supported.
@@ -126,7 +130,7 @@ The icon master is `assets/icons/hexdex_icon.svg`. To rebuild the icon formats, 
 1. Edit `assets/icons/hexdex_icon.svg`, or the name, tagline and colours at the top of `assets/make_assets.py`.
 2. Run `venv\Scripts\python.exe assets\make_assets.py`.
 
-The script writes `hexdex_icon.png`, `.ico` and `.icns` to `assets/icons/`, and `banner.png` and `social-card.png` to `docs/images/`. To use the social card on GitHub, open the repository, select **Settings**, then under **General** go to **Social preview**. Select **Edit** > **Upload an image** and choose `docs/images/social-card.png`.
+The script writes `hexdex_icon.png`, `.ico` and `.icns` to `assets/icons/`, `banner.png` and `social-card.png` to `docs/images/`, and `icon.svg` and `apple-touch-icon.png` to `docs/`. To use the social card on GitHub, open the repository, select **Settings**, then under **General** go to **Social preview**. Select **Edit** > **Upload an image** and choose `docs/images/social-card.png`.
 
 ### Update the screenshots
 
@@ -136,6 +140,19 @@ The script writes `hexdex_icon.png`, `.ico` and `.icns` to `assets/icons/`, and 
 The script opens the real interface with 25 made-up sample Pokémon and saves the collection and detail views in light and dark. It keeps its settings and data in `Meta/screenshot-cache/`, so your own collection, notes and folders do not appear.
 
 **Note:** The first run downloads PokéAPI information and artwork for the sample species. Later runs work offline.
+
+### Update the website
+
+The website is `docs/index.html`, `docs/style.css` and `docs/app.js`. It has no build step. GitHub Pages serves `docs/` from the `main` branch, so a push to `main` updates the website.
+
+To preview it locally:
+
+1. Run `venv\Scripts\python.exe -m http.server 8765 --bind 127.0.0.1 --directory docs`.
+2. Open `http://127.0.0.1:8765/`.
+
+The app previews on the website are built in HTML with sample data and generic silhouettes. The website contains no Pokémon artwork. To change the sample data, edit `docs/app.js`.
+
+**Note:** The download links find release files by the end of their names, for example `windows-x64.zip`. If you rename release files, also change the `ASSET` patterns in `docs/app.js`. Until then, the links open the Releases page.
 
 ### Creating a release
 
@@ -181,7 +198,9 @@ HexDex/
 │   ├── icons/              # Icon master (SVG) and its PNG, ICO and ICNS files
 │   ├── make_assets.py      # Builds the icons, banner and social card
 │   └── make_screenshots.py # Retakes the README screenshots with sample data
-└── docs/
+└── docs/                   # GitHub Pages website
+    ├── index.html, style.css, app.js
+    ├── icon.svg, apple-touch-icon.png
     └── images/             # Banner, social card and screenshots
 ```
 
