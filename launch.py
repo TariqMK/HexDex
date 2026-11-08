@@ -12,12 +12,19 @@ Usage:
     (or double-click launch.bat if you have one set up)
 """
 
+import sys
 import threading
 import time
 import webbrowser
+from pathlib import Path
+
 import app as flask_app
 
 PORT = 5000
+# Window and taskbar icon. PyInstaller bundles it inside the app folder;
+# from source it is read from assets/icons/.
+_BUNDLE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+ICON = _BUNDLE_DIR / ("hexdex_icon.png" if hasattr(sys, "_MEIPASS") else "assets/icons/hexdex_icon.png")
 
 def run_flask():
     """Start Flask in a background thread with no reloader."""
@@ -40,4 +47,4 @@ if __name__ == "__main__":
         min_size=(900, 600),
         resizable=True,
     )
-    webview.start(gui='qt')
+    webview.start(gui='qt', icon=str(ICON) if ICON.is_file() else None)

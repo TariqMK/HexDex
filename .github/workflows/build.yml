@@ -134,7 +134,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt "pyinstaller>=6.11,<7" pillow
+          python -m pip install -r requirements.txt "pyinstaller>=6.11,<7"
           python -m pip check
 
       - name: Check source and build environment
@@ -154,7 +154,8 @@ jobs:
               raise RuntimeError(f'Expected {expected}, got {actual}')
           for filename in ('app.py', 'launch.py'):
               ast.parse(Path(filename).read_text(encoding='utf-8'))
-          for filename in ('templates/index.html', 'assets/icons/hexdex_icon.ico'):
+          for filename in ('templates/index.html', 'assets/icons/hexdex_icon.ico',
+                           'assets/icons/hexdex_icon.icns', 'assets/icons/hexdex_icon.png'):
               if not Path(filename).is_file():
                   raise FileNotFoundError(filename)
           import tkinter
@@ -177,6 +178,8 @@ jobs:
           # Absolute input paths work regardless of the spec's location.
           templates = root / 'templates'
           icon = root / 'assets/icons/hexdex_icon.ico'
+          mac_icon = root / 'assets/icons/hexdex_icon.icns'
+          window_icon = root / 'assets/icons/hexdex_icon.png'
           metadata = root / 'build/build-version.json'
           metadata.parent.mkdir(exist_ok=True)
           metadata.write_text(json.dumps({'version': os.environ['BUILD_VERSION']}), encoding='utf-8')
@@ -189,6 +192,7 @@ jobs:
               '--specpath', 'build',
               '--add-data', f'{templates}:templates',
               '--add-data', f'{metadata}:.',
+              '--add-data', f'{window_icon}:.',
               '--hidden-import', 'webview.platforms.qt',
               '--hidden-import', 'PyQt6.QtWebEngineWidgets',
               '--hidden-import', 'PyQt6.QtWebChannel',
@@ -199,12 +203,7 @@ jobs:
           if sys.platform == 'win32':
               command += ['--icon', str(icon)]
           elif sys.platform == 'darwin':
-              # Convert the Windows icon for the macOS app bundle.
-              from PIL import Image
-              mac_icon = root / 'build/hexdex.icns'
-              mac_icon.parent.mkdir(exist_ok=True)
-              with Image.open(icon) as image:
-                  image.save(mac_icon, format='ICNS')
+              # assets/make_assets.py writes the .icns from the same master as the .ico.
               command += ['--icon', str(mac_icon), '--target-arch', 'arm64']
           command += [str(root / 'launch.py')]
           subprocess.run(command, check=True)
@@ -236,7 +235,8 @@ jobs:
               executable = bundle / ('HexDex.exe' if sys.platform == 'win32' else 'HexDex')
               templates = bundle / '_internal/templates/index.html'
               metadata = bundle / '_internal/build-version.json'
-          for required in (executable, templates, metadata):
+          window_icon = templates.parents[1] / 'hexdex_icon.png'
+          for required in (executable, templates, metadata, window_icon):
               if not required.is_file():
                   raise FileNotFoundError(required)
           import json
@@ -248,6 +248,8 @@ jobs:
               ).strip()
               if architectures != 'arm64':
                   raise RuntimeError(f'Unexpected macOS architectures: {architectures}')
+              if not list((bundle / 'Contents/Resources').glob('*.icns')):
+                  raise RuntimeError('HexDex.app contains no icon')
               # ditto preserves app-bundle symlinks and macOS metadata.
               subprocess.run([
                   'ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',

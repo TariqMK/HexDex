@@ -1,10 +1,22 @@
-![HexDex banner](docs/images/banner.svg)
-
-# HexDex
+![HexDex. Gen 1–7 Pokémon files. One collection.](docs/images/banner.png)
 
 A desktop viewer for your personal Pokémon collection. HexDex reads individual Pokémon files exported from PKHeX and displays them in a searchable collection with artwork, stats, moves, evolution chains, notes, tags, and favourites.
 
 Supports `.pk1` through `.pk7` files, covering Generations 1–7. HexDex views exported files; it does not edit them or open complete game saves.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/collection-dark.png">
+  <img src="docs/images/collection-light.png" alt="HexDex collection view: the folder bar, search and filters, and a grid of Pokémon cards with artwork, level and favourite stars" width="840">
+</picture>
+
+## Screenshots
+
+### Detail view
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/detail-dark.png">
+  <img src="docs/images/detail-light.png" alt="HexDex detail panel for a shiny Charizard: artwork, types, the two Charizard files in the collection, description, and trainer details" width="840">
+</picture>
 
 ## Features
 
@@ -17,17 +29,7 @@ Supports `.pk1` through `.pk7` files, covering Generations 1–7. HexDex views e
 - Follow generation-specific links to Serebii for more information.
 - Reuse locally cached Pokémon data and artwork after the initial download.
 - Follow scan progress in a compact activity panel beneath the loading message.
-- Find the installed build version beside the HexDex logo.
-
-## Screenshots
-
-### Collection view
-
-![HexDex collection view](docs/images/collection-view.jpg)
-
-### Detail view
-
-![HexDex detail view](docs/images/detail-view.jpg)
+- Find the installed build version beside the HexDex logo, and select it to check for a newer release.
 
 ## Getting HexDex
 
@@ -71,6 +73,14 @@ First scans can take longer because HexDex downloads species information, moves,
 
 The small label beside the **HexDex** logo shows the packaged release version, for example `v1.8.5`. Local Python runs show **Development build**. Draft and public packages carry the same version; publishing a draft does not change its contents.
 
+### Check for updates
+
+1. Select the version label beside the **HexDex** logo.
+2. Read the result in the **Check for updates** dialog.
+3. If a newer release is available, select **Open release page** to download it in your browser.
+
+HexDex does not download or install updates itself. It never checks automatically.
+
 ### Notes, tags, and favourites
 
 Each exported file has its own notes, tags, and favourite status. Use the detail panel to edit notes and tags; they save automatically when you leave the note field or add or remove a tag, and a **Saved** label confirms it. To tag several Pokémon at once, click **Select**, choose their cards, and apply a tag.
@@ -89,6 +99,16 @@ HexDex stores downloaded information, artwork, and personal annotations in a loc
 
 The cache, Python environment, and generated executables are excluded from the source repository.
 
+## Privacy
+
+HexDex has no accounts, telemetry, or analytics. Your notes, tags, and favourites stay in the local `cache/` folder. HexDex reads your Pokémon files and never changes them.
+
+HexDex connects to the internet only for these features:
+
+- **Scan:** downloads Pokémon information from PokéAPI (pokeapi.co) and artwork from GitHub (raw.githubusercontent.com) that is not yet cached.
+- **Serebii links:** open serebii.net in your browser when you select them.
+- **Check for updates:** when you select the version number, the app asks GitHub (api.github.com) for the latest release. It sends nothing else and nothing is downloaded.
+
 ## Current limitations
 
 - Supported inputs are PKHeX-exported `.pk1`–`.pk7` files; later generations and complete save files are not supported.
@@ -98,6 +118,26 @@ The cache, Python environment, and generated executables are excluded from the s
 ## Development and builds
 
 The application uses Python, Flask, and pywebview with the Qt backend. The interface uses HTML, CSS, and JavaScript without a separate frontend build step.
+
+### Update the brand images
+
+The icon master is `assets/icons/hexdex_icon.svg`. To rebuild the icon formats, the banner and the social card after a change:
+
+1. Edit `assets/icons/hexdex_icon.svg`, or the name, tagline and colours at the top of `assets/make_assets.py`.
+2. Run `venv\Scripts\python.exe assets\make_assets.py`.
+
+The script writes `hexdex_icon.png`, `.ico` and `.icns` to `assets/icons/`, and `banner.png` and `social-card.png` to `docs/images/`. To use the social card on GitHub, open the repository, select **Settings**, then under **General** go to **Social preview**. Select **Edit** > **Upload an image** and choose `docs/images/social-card.png`.
+
+### Update the screenshots
+
+1. Run `venv\Scripts\python.exe assets\make_screenshots.py`.
+2. Check the four images in `docs/images/` before you commit them.
+
+The script opens the real interface with 25 made-up sample Pokémon and saves the collection and detail views in light and dark. It keeps its settings and data in `Meta/screenshot-cache/`, so your own collection, notes and folders do not appear.
+
+**Note:** The first run downloads PokéAPI information and artwork for the sample species. Later runs work offline.
+
+### Creating a release
 
 The workflow in `.github/workflows/build.yml` runs **manually only**. Pushing commits or tags does not trigger a build.
 
@@ -117,11 +157,13 @@ The workflow calculates the next version from the highest existing stable `vMAJO
 
 Release runs are serialized to avoid duplicate version numbers. The tag points to the exact commit selected for the run. Build failures do not create a release or tag; publication failures may leave a draft that can be resumed by rerunning the failed job. Published releases are never overwritten. Draft releases are visible to repository users with write access; source code and Actions logs remain public in a public repository. Published release downloads remain available independently of the temporary Actions artifacts, which are retained for 30 days.
 
-Runtime dependencies are listed in `requirements.txt`. The workflow installs PyInstaller and defines its packaging options directly, including the templates, Qt backend, and application icon. It does not depend on the local spec in the ignored `Meta/` folder. Generated build output belongs in downloadable build packages rather than source commits.
+Runtime dependencies are listed in `requirements.txt`. The workflow installs PyInstaller and defines its packaging options directly, including the templates, Qt backend, and application icons (`.ico` for Windows, `.icns` for macOS, and the PNG window icon). It does not depend on the local spec in the ignored `Meta/` folder. Generated build output belongs in downloadable build packages rather than source commits.
 
 Actions embeds the calculated version in `build-version.json` and checks that it matches the release version before packaging. Both version calculation and release creation have the repository permission needed to see draft releases; platform build jobs retain read-only repository access.
 
 For local development checks, run `venv\Scripts\python.exe launch.py` on Windows (or use the local `start.bat`). This exercises the desktop interface, but packaged downloads still need testing on their target operating systems before publishing.
+
+Run the parser tests with `venv\Scripts\python.exe -m unittest discover -s tests`. The tests use generated sample files. To also check real exports, put `.pk1`–`.pk7` files in `Meta/test-pokemon/`. That folder is git-ignored, so the files stay private.
 
 ### Repository layout
 
@@ -136,9 +178,11 @@ HexDex/
 ├── templates/
 │   └── index.html          # Application interface
 ├── assets/
-│   └── icons/              # Application icon
+│   ├── icons/              # Icon master (SVG) and its PNG, ICO and ICNS files
+│   ├── make_assets.py      # Builds the icons, banner and social card
+│   └── make_screenshots.py # Retakes the README screenshots with sample data
 └── docs/
-    └── images/             # README banner and screenshots
+    └── images/             # Banner, social card and screenshots
 ```
 
 ## Credits

@@ -3,3 +3,8 @@ __pycache__/
 cache/
 venv/
 start.bat
+# AI tool files
+.claude/
+CLAUDE.md
+AGENTS.md
+.cursor/

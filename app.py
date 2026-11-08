@@ -8,6 +8,7 @@ from collections import deque
 from urllib.parse import urlparse
 import requests
 from flask import Flask, jsonify, request, render_template
+from item_names import GEN2_ITEM_NAMES, GEN3_ITEM_NAMES, GEN4_ITEM_NAMES
 
 # ---------------------------------------------------------------------------
 # Path setup — works both when run normally and when frozen by PyInstaller
@@ -307,35 +308,71 @@ def fetch_ability_data(ability_name: str, cache: dict) -> dict | None:
 # translate_item_id. For now they fall through to None — no incorrect data shown.
 
 # Gen 2 (Gold/Silver/Crystal) internal item ID -> PokéAPI slug
+# Source: PKHeX text_ItemsG2_en.txt, each name matched to an item in PokéAPI's item list.
+# TMs/HMs (191-249) are left out because they can't be held.
 GEN2_ITEM_SLUGS = {
-    # Vitamins / battle items
-    26: "hp-up", 27: "protein", 28: "iron", 29: "carbos", 30: "calcium",
-    31: "rare-candy", 32: "pp-up", 33: "zinc", 34: "pp-max",
-    # In-battle stat boosters
-    36: "guard-spec", 37: "dire-hit", 38: "x-attack", 39: "x-defend",
-    40: "x-speed", 41: "x-accuracy", 42: "x-sp-atk",
-    # Held items (the ones that matter most for Gen2)
-    178: "brightpowder",   179: "lucky-punch",  180: "metal-powder",
-    181: "stick",          182: "heart-scale",
-    196: "kings-rock",     197: "silver-powder",
-    198: "amulet-coin",    199: "cleanse-tag",
-    211: "soul-dew",       212: "deep-sea-tooth", 213: "deep-sea-scale",
-    214: "smoke-ball",     215: "everstone",
-    216: "focus-band",     217: "lucky-egg",    218: "scope-lens",
-    219: "metal-coat",     220: "leftovers",    221: "dragon-scale",
-    222: "light-ball",     223: "soft-sand",    224: "hard-stone",
-    225: "miracle-seed",   226: "blackglasses", 227: "black-belt",
-    228: "magnet",         229: "mystic-water", 230: "sharp-beak",
-    231: "poison-barb",    232: "nevermeltice", 233: "spell-tag",
-    234: "twistedspoon",   235: "charcoal",     236: "dragon-fang",
-    237: "silk-scarf",     238: "up-grade",     239: "shell-bell",
-    240: "sea-incense",    241: "lax-incense",  242: "lucky-punch",
-    243: "metal-powder",   244: "thick-club",   245: "stick",
-    # Berries (Gen2 berries map to their Gen3+ equivalents)
-    197: "oran-berry",     198: "sitrus-berry",
-    # Common consumable held items
-    246: "scope-lens",     247: "metal-coat",   248: "leftovers",
-    249: "dragon-scale",   250: "light-ball",
+    1: "master-ball", 2: "ultra-ball", 3: "bright-powder", 4: "great-ball",
+    5: "poke-ball", 7: "bicycle", 8: "moon-stone", 9: "antidote",
+    10: "burn-heal", 11: "ice-heal", 12: "awakening", 13: "paralyze-heal",
+    14: "full-restore", 15: "max-potion", 16: "hyper-potion", 17: "super-potion",
+    18: "potion", 19: "escape-rope", 20: "repel", 21: "max-elixir",
+    22: "fire-stone", 23: "thunder-stone", 24: "water-stone", 26: "hp-up",
+    27: "protein", 28: "iron", 29: "carbos", 30: "lucky-punch",
+    31: "calcium", 32: "rare-candy", 33: "x-accuracy", 34: "leaf-stone",
+    35: "metal-powder", 36: "nugget", 37: "poke-doll", 38: "full-heal",
+    39: "revive", 40: "max-revive", 41: "guard-spec", 42: "super-repel",
+    43: "max-repel", 44: "dire-hit", 46: "fresh-water", 47: "soda-pop",
+    48: "lemonade", 49: "x-attack", 51: "x-defense", 52: "x-speed",
+    53: "x-sp-atk", 54: "coin-case", 57: "exp-share", 58: "old-rod",
+    59: "good-rod", 60: "silver-leaf", 61: "super-rod", 62: "pp-up",
+    63: "ether", 64: "max-ether", 65: "elixir", 66: "red-scale",
+    67: "secret-potion", 68: "ss-ticket", 69: "mystery-egg", 70: "clear-bell",
+    71: "silver-wing", 72: "moomoo-milk", 73: "quick-claw", 75: "gold-leaf",
+    76: "soft-sand", 77: "sharp-beak", 81: "poison-barb", 82: "kings-rock",
+    85: "red-apricorn", 86: "tiny-mushroom", 87: "big-mushroom", 88: "silver-powder",
+    89: "blue-apricorn", 91: "amulet-coin", 92: "yellow-apricorn", 93: "green-apricorn",
+    94: "cleanse-tag", 95: "mystic-water", 96: "twisted-spoon", 97: "white-apricorn",
+    98: "black-belt", 99: "black-apricorn", 101: "pink-apricorn", 102: "black-glasses",
+    103: "slowpoke-tail", 105: "stick", 106: "smoke-ball", 107: "never-melt-ice",
+    108: "magnet", 110: "pearl", 111: "big-pearl", 112: "everstone",
+    113: "spell-tag", 114: "rage-candy-bar", 116: "blue-card", 117: "miracle-seed",
+    118: "thick-club", 119: "focus-band", 121: "energy-powder", 122: "energy-root",
+    123: "heal-powder", 124: "revival-herb", 125: "hard-stone", 126: "lucky-egg",
+    127: "card-key", 128: "machine-part", 130: "lost-item", 131: "stardust",
+    132: "star-piece", 133: "basement-key", 134: "pass", 138: "charcoal",
+    139: "berry-juice", 140: "scope-lens", 143: "metal-coat", 144: "dragon-fang",
+    146: "leftovers", 151: "dragon-scale", 156: "sacred-ash", 157: "heavy-ball",
+    159: "level-ball", 160: "lure-ball", 161: "fast-ball", 163: "light-ball",
+    164: "friend-ball", 165: "moon-ball", 166: "love-ball", 169: "sun-stone",
+    172: "up-grade", 175: "squirt-bottle", 177: "park-ball", 178: "rainbow-wing",
+}
+
+# Gen 2 items with no PokéAPI entry (Gen 2-only berries, bows, mail).
+# Their modern stand-ins have different effects, so name and effect are kept here.
+GEN2_LEGACY_ITEMS = {
+    74: {"name": "PSNCureBerry", "effect": "Held: cures poison."},
+    78: {"name": "PRZCureBerry", "effect": "Held: cures paralysis."},
+    79: {"name": "Burnt Berry", "effect": "Held: thaws a frozen Pokémon."},
+    80: {"name": "Ice Berry", "effect": "Held: cures a burn."},
+    83: {"name": "Bitter Berry", "effect": "Held: cures confusion."},
+    84: {"name": "Mint Berry", "effect": "Held: wakes a sleeping Pokémon."},
+    104: {"name": "Pink Bow", "effect": "Held: powers up Normal-type moves."},
+    109: {"name": "MiracleBerry", "effect": "Held: cures any status problem."},
+    150: {"name": "MysteryBerry", "effect": "Held: restores 5 PP."},
+    152: {"name": "Berserk Gene", "effect": "Held: sharply raises Attack, but confuses the holder."},
+    158: {"name": "Flower Mail", "effect": "Holds a letter."},
+    170: {"name": "Polkadot Bow", "effect": "Held: powers up Normal-type moves."},
+    173: {"name": "Berry", "effect": "Held: restores 10 HP."},
+    174: {"name": "Gold Berry", "effect": "Held: restores 30 HP."},
+    181: {"name": "Surf Mail", "effect": "Holds a letter."},
+    182: {"name": "Litebluemail", "effect": "Holds a letter."},
+    183: {"name": "Portraitmail", "effect": "Holds a letter."},
+    184: {"name": "Lovely Mail", "effect": "Holds a letter."},
+    185: {"name": "Eon Mail", "effect": "Holds a letter."},
+    186: {"name": "Morph Mail", "effect": "Holds a letter."},
+    187: {"name": "Bluesky Mail", "effect": "Holds a letter."},
+    188: {"name": "Music Mail", "effect": "Holds a letter."},
+    189: {"name": "Mirage Mail", "effect": "Holds a letter."},
 }
 
 # Gen 3 (RS/E/FR/LG) internal item ID -> PokéAPI slug
@@ -456,9 +493,8 @@ GEN4_ITEM_SLUGS = {
     321:"protector",      322:"electirizer",     323:"magmarizer",
     324:"dubious-disc",   325:"reaper-cloth",    326:"razor-claw",
     327:"razor-fang",
-    # Orbs (non-sequential internal IDs)
-    112:"adamant-orb",    113:"lustrous-orb",    135:"adamant-orb",
-    136:"lustrous-orb",
+    # Orbs (non-sequential internal IDs; 113 is Tea, not holdable)
+    112:"griseous-orb",   135:"adamant-orb",     136:"lustrous-orb",
 }
 
 # Gen 3 internal species index -> National Dex number
@@ -641,6 +677,51 @@ def enrich_moves(move_ids: list, cache: dict) -> list:
             result.append(fetch_move_data(mid, cache))
     return result
 
+ITEM_NAMES_BY_GEN = {2: GEN2_ITEM_NAMES, 3: GEN3_ITEM_NAMES, 4: GEN4_ITEM_NAMES}
+
+# PokéAPI version groups with in-game item descriptions, oldest first.
+# Gen 2 has none in PokéAPI, so Gen 2 items use the oldest description available.
+VERSION_GROUPS_BY_GEN = {
+    3: ["ruby-sapphire", "emerald", "firered-leafgreen", "colosseum", "xd"],
+    4: ["diamond-pearl", "platinum", "heartgold-soulsilver"],
+}
+ORIGIN_VERSION_GROUP = {
+    "Ruby": "ruby-sapphire", "Sapphire": "ruby-sapphire", "Emerald": "emerald",
+    "FireRed": "firered-leafgreen", "LeafGreen": "firered-leafgreen",
+    "Colosseum": "colosseum", "XD": "xd",
+    "Diamond": "diamond-pearl", "Pearl": "diamond-pearl", "Platinum": "platinum",
+    "HeartGold": "heartgold-soulsilver", "SoulSilver": "heartgold-soulsilver",
+}
+ALL_VERSION_GROUPS = [
+    "ruby-sapphire", "emerald", "firered-leafgreen", "colosseum", "xd",
+    "diamond-pearl", "platinum", "heartgold-soulsilver", "black-white", "black-2-white-2",
+    "x-y", "omega-ruby-alpha-sapphire", "sun-moon", "ultra-sun-ultra-moon",
+]
+
+def original_game_description(flavor: dict, generation: int, origin_game: str | None) -> str | None:
+    """Pick the in-game description from the file's own game, else its generation, else the oldest."""
+    gen_groups = VERSION_GROUPS_BY_GEN.get(generation, [])
+    origin_group = ORIGIN_VERSION_GROUP.get(origin_game or "")
+    preferred = ([origin_group] if origin_group in gen_groups else []) + gen_groups + ALL_VERSION_GROUPS
+    for group in preferred:
+        if flavor.get(group):
+            return flavor[group]
+    return None
+
+def resolve_held_item(item_id: int, generation: int, cache: dict, origin_game: str | None = None) -> dict | None:
+    """Return {name, effect} for a file's held item, or None if there is none or it's unknown.
+    Names and descriptions come from the file's own game where known, not today's games.
+    Gen 2-only items resolve locally; everything else goes through PokéAPI."""
+    if generation == 2 and item_id in GEN2_LEGACY_ITEMS:
+        return dict(GEN2_LEGACY_ITEMS[item_id])
+    translated = translate_item_id(item_id, generation)
+    data = fetch_item_data(translated, cache) if translated else None
+    if not data:
+        return None
+    name = ITEM_NAMES_BY_GEN.get(generation, {}).get(item_id) or data["name"]
+    effect = original_game_description(data.get("flavor", {}), generation, origin_game) or data["effect"]
+    return {"name": name, "effect": effect}
+
 def fetch_item_data(item_id, cache: dict) -> dict | None:
     """Fetch English name and description for a held item.
     item_id can be an int (Gen4+ direct PokéAPI ID) or a slug string (Gen2/3).
@@ -648,7 +729,8 @@ def fetch_item_data(item_id, cache: dict) -> dict | None:
     if not item_id:
         return None
     key = f"item:{item_id}"
-    if key in cache:
+    # Entries cached before per-game descriptions were stored have no "flavor"; refetch those once.
+    if key in cache and "flavor" in cache[key]:
         return cache[key]
     try:
         r = fetch_with_progress(f"{POKEAPI_BASE}/item/{item_id}", timeout=10)
@@ -666,13 +748,16 @@ def fetch_item_data(item_id, cache: dict) -> dict | None:
             if e["language"]["name"] == "en":
                 effect = e.get("short_effect") or e.get("effect") or ""
                 break
-        if not effect:
-            for ft in it.get("flavor_text_entries", []):
-                if ft["language"]["name"] == "en":
-                    effect = ft.get("text", "").replace("\n", " ").replace("\f", " ")
-                    break
+        # In-game descriptions, one per version group (e.g. "firered-leafgreen").
+        flavor = {}
+        for ft in it.get("flavor_text_entries", []):
+            if ft["language"]["name"] == "en":
+                text = ft.get("text", "").replace("­\n", "").replace("­", "")
+                flavor[ft["version_group"]["name"]] = " ".join(text.split())
+        if not effect and flavor:
+            effect = next(iter(flavor.values()))
 
-        data = {"name": name, "effect": effect}
+        data = {"name": name, "effect": effect, "flavor": flavor}
         cache[key] = data
         save_cache(cache)
         time.sleep(0.15)
@@ -800,6 +885,13 @@ def dv_shiny(dv_word: int) -> bool:
     spc  = (dv_word >>  0) & 0xF
     return def_ == 10 and spd == 10 and spc == 10 and atk in (2,3,6,7,10,11,14,15)
 
+def gb_gender(atk_dv: int, gender_rate: int) -> str:
+    """Gen 1/2 gender for a mixed-gender species (PokéAPI gender_rate 1-7, in eighths female).
+    Female when the Attack DV is at or below PKHeX's threshold (gender value >> 4):
+    1/8 female -> DV 0-1, 1/4 -> 0-3, 1/2 -> 0-7, 3/4 -> 0-11."""
+    threshold = {1: 1, 2: 3, 4: 7, 6: 11}.get(gender_rate, 7)
+    return "female" if atk_dv <= threshold else "male"
+
 def dv_hp(dv_word: int) -> int:
     """Derive HP DV from other DVs."""
     atk  = (dv_word >> 12) & 0xF
@@ -887,16 +979,13 @@ def parse_pk1(data: bytes) -> dict:
 def parse_pk2(data: bytes) -> dict:
     """Parse a PKHeX-exported .pk2 file. Two formats detected by file size:
 
-    PARTY format (73 bytes) — confirmed from real Gold Gyarados:
-      0x00: list-count prefix (0x01), skip
-      0x01: species (national dex)
-      0x02: held item
-      0x03-0x06: moves (4 x 1 byte)
-      0x07-0x08: OT ID (big-endian)
-      0x09-0x0B: EXP (3 bytes big-endian)
-      0x18-0x19: DV word (big-endian)
-      0x1C: friendship
-      0x1D: level
+    PARTY format (73 bytes) — PKHeX list format (PokeCrypto.SIZE_2ULIST):
+      0x00: list count (0x01), 0x01: list species (0xFD = egg), 0x02: 0xFF terminator
+      0x03-0x32: 48-byte party struct (PKHeX PK2), so struct offset + 3:
+        0x03: species, 0x04: held item, 0x05-0x08: moves
+        0x09-0x0A: OT ID (big-endian), 0x0B-0x0D: EXP (3 bytes big-endian)
+        0x18-0x19: DV word (big-endian), 0x1A-0x1D: PP (lower 6 bits)
+        0x1E: friendship, 0x22: level
       0x33-0x3D: OT name (11 bytes, 0x50 terminated)
       0x3E-0x48: Nickname (11 bytes, 0x50 terminated)
 
@@ -923,13 +1012,13 @@ def parse_pk2(data: bytes) -> dict:
         species_byte = data[0x01]
         is_egg_g2 = (species_byte == 0xFD)  # 0xFD = Gen2 egg marker
         species    = data[0x03] if is_egg_g2 else species_byte
-        held_item  = data[0x02]
-        moves      = [0,0,0,0] if is_egg_g2 else [data[0x03], data[0x04], data[0x05], data[0x06]]
-        ot_id      = struct.unpack_from('>H', data, 0x07)[0]
-        exp        = (data[0x09] << 16) | (data[0x0A] << 8) | data[0x0B]
+        held_item  = data[0x04]
+        moves      = [0,0,0,0] if is_egg_g2 else [data[0x05], data[0x06], data[0x07], data[0x08]]
+        ot_id      = struct.unpack_from('>H', data, 0x09)[0]
+        exp        = (data[0x0B] << 16) | (data[0x0C] << 8) | data[0x0D]
         dv_word    = struct.unpack_from('>H', data, 0x18)[0]
-        friendship = data[0x1C]
-        level      = 1 if is_egg_g2 else data[0x1D]
+        friendship = data[0x1E]
+        level      = 1 if is_egg_g2 else data[0x22]
         pp         = [data[0x1A] & 0x3F, data[0x1B] & 0x3F,
                       data[0x1C] & 0x3F, data[0x1D] & 0x3F]
         ot_name    = decode_gen12_string(data[0x33:0x3E]) if len(data) > 0x33 else ""
@@ -1029,7 +1118,15 @@ def parse_pk7(raw: bytes) -> dict:
     is_egg     = bool((iv_raw >> 30) & 1)
 
     ot_name    = decode_gen5_string(raw[176:], 12)
-    level      = raw[221]
+    # 0xDD is met level + OT gender, not the current level. Party files (260 bytes)
+    # store the level at 0xEC; box files (232 bytes) have none, so derive it from
+    # EXP (corrected with the species' growth rate after the PokéAPI fetch).
+    if len(raw) >= 260:
+        level = raw[0xEC]
+        level_from_exp_flag = False
+    else:
+        level = level_from_exp(exp, 'medium-fast')
+        level_from_exp_flag = True
 
     GEN7_GAMES = {
         # Gen 7 games
@@ -1053,6 +1150,7 @@ def parse_pk7(raw: bytes) -> dict:
         "ot_name": ot_name,
         "ot_id": ot_id,
         "level": level,
+        "level_from_exp": level_from_exp_flag,
         "nature": nature,
         "shiny": shiny,
         "is_egg": is_egg,
@@ -1115,7 +1213,15 @@ def parse_pk6(raw: bytes) -> dict:
     is_egg     = bool((iv_raw >> 30) & 1)
 
     ot_name    = decode_gen5_string(raw[176:], 12)
-    level      = raw[221]
+    # 0xDD is met level + OT gender, not the current level. Party files (260 bytes)
+    # store the level at 0xEC; box files (232 bytes) have none, so derive it from
+    # EXP (corrected with the species' growth rate after the PokéAPI fetch).
+    if len(raw) >= 260:
+        level = raw[0xEC]
+        level_from_exp_flag = False
+    else:
+        level = level_from_exp(exp, 'medium-fast')
+        level_from_exp_flag = True
 
     GEN6_GAMES = {
         24: 'X', 25: 'Y',
@@ -1135,6 +1241,7 @@ def parse_pk6(raw: bytes) -> dict:
         "ot_name": ot_name,
         "ot_id": ot_id,
         "level": level,
+        "level_from_exp": level_from_exp_flag,
         "nature": nature,
         "shiny": shiny,
         "is_egg": is_egg,
@@ -1309,30 +1416,47 @@ def decode_gen4_string(data: bytes, max_len: int) -> str:
     return ''.join(chars).strip()
 
 def decode_gen5_string(data: bytes, max_len: int) -> str:
-    """Gen5 uses standard UTF-16LE, terminated by 0xFFFF."""
+    """UTF-16LE names: Gen5 ends them with 0xFFFF, Gen6/7 with 0x0000.
+    Bytes after the terminator can hold an old name, so stop at either."""
     chars = []
     for i in range(0, max_len * 2, 2):
         if i + 1 >= len(data): break
         code = struct.unpack_from('<H', data, i)[0]
-        if code == 0xFFFF: break
-        if code != 0:
-            try: chars.append(chr(code))
-            except: pass
+        if code in (0xFFFF, 0x0000): break
+        try: chars.append(chr(code))
+        except: pass
     return ''.join(chars).strip()
 
 def level_from_exp(exp: int, growth: str = 'slow') -> int:
     """Derive level from EXP. Defaults to Slow (most legendaries).
-    Growth rate is fetched from PokéAPI species data when available."""
+    Growth rate is fetched from PokéAPI species data when available.
+    PokéAPI names Erratic "slow-then-very-fast" and Fluctuating "fast-then-very-slow"."""
     for lv in range(1, 100):
+        n = lv + 1
         if growth == 'slow':
-            nxt = int(5 * (lv + 1) ** 3 / 4)
+            nxt = int(5 * n ** 3 / 4)
         elif growth == 'fast':
-            nxt = int(4 * (lv + 1) ** 3 / 5)
+            nxt = int(4 * n ** 3 / 5)
         elif growth == 'medium-slow':
-            n = lv + 1
             nxt = max(0, int(6*n**3/5 - 15*n**2 + 100*n - 140))
+        elif growth == 'slow-then-very-fast':  # Erratic
+            if n < 50:
+                nxt = n**3 * (100 - n) // 50
+            elif n < 68:
+                nxt = n**3 * (150 - n) // 100
+            elif n < 98:
+                nxt = n**3 * ((1911 - 10*n) // 3) // 500
+            else:
+                nxt = n**3 * (160 - n) // 100
+        elif growth == 'fast-then-very-slow':  # Fluctuating
+            if n < 15:
+                nxt = n**3 * ((n + 1) // 3 + 24) // 50
+            elif n < 36:
+                nxt = n**3 * (n + 14) // 50
+            else:
+                nxt = n**3 * (n // 2 + 32) // 50
         else:  # medium-fast default
-            nxt = (lv + 1) ** 3
+            nxt = n ** 3
         if exp < nxt:
             return lv
     return 100
@@ -1362,11 +1486,12 @@ def parse_pk4(raw: bytes) -> dict:
       Block B (40-71):
         40:  moves 1-4 (4 × uint16)
         48:  PP 1-4 (4 × uint8)
+        56:  IV word (packed uint32; bit 30 = egg)
       Block C (72-103):
         72:  nickname (11 × uint16, Gen4 encoding, 0xFFFF terminated)
       Block D (104-135):
         104: OT name (7 × uint16, Gen4 encoding, 0xFFFF terminated)
-        128: IV word (packed uint32)
+        128: met location, Pokérus, ball — not IVs
       Level: derived from EXP (no battle stats block in box format)
 
     PARTY format (236 bytes):
@@ -1399,7 +1524,8 @@ def parse_pk4(raw: bytes) -> dict:
     ev_hp  = raw[24]; ev_atk = raw[25]; ev_def = raw[26]
     ev_spd = raw[27]; ev_spa = raw[28]; ev_spd2= raw[29]
 
-    iv_raw     = struct.unpack_from('<I', raw, 128)[0]
+    # IVs are in Block B at 0x38 (PKHeX PK4.IV32)
+    iv_raw     = struct.unpack_from('<I', raw, 0x38)[0]
     iv_hp      = (iv_raw >> 0)  & 0x1F
     iv_atk     = (iv_raw >> 5)  & 0x1F
     iv_def     = (iv_raw >> 10) & 0x1F
@@ -1474,9 +1600,10 @@ def parse_pk5(raw: bytes) -> dict:
     """Parse a PKHeX-exported .pk5 file.
 
     Like .pk4, PKHeX exports .pk5 already decrypted and unshuffled.
-    Same block layout as pk4 with one key difference:
-    Nature is stored explicitly at Block A byte 20 (abs offset 28),
-    not derived from PID % 25.
+    Same block layout as pk4 (EVs 0x18, IVs 0x38) with these differences
+    (offsets from PKHeX PK5):
+      0x41: nature, stored explicitly rather than derived from PID % 25
+      0x48: nickname, 0x68: OT name — UTF-16LE, 0xFFFF terminated
     Species range: 1-649.
 
     File sizes: 136 bytes (box) or 220 bytes (party, includes battle stats).
@@ -1495,16 +1622,16 @@ def parse_pk5(raw: bytes) -> dict:
     exp        = struct.unpack_from('<I', raw, 16)[0]
     friendship = raw[20]
     ability_idx= raw[22]
-    nature_id  = raw[28]
+    nature_id  = raw[0x41]
     nature     = NATURES_GEN3[nature_id % 25]
 
     moves      = struct.unpack_from('<4H', raw, 40)
     pp         = struct.unpack_from('<4B', raw, 48)
 
-    nickname   = decode_gen4_string(raw[72:], 11)
-    ot_name    = decode_gen4_string(raw[104:], 7)
+    nickname   = decode_gen5_string(raw[0x48:], 11)
+    ot_name    = decode_gen5_string(raw[0x68:], 8)
 
-    iv_raw     = struct.unpack_from('<I', raw, 128)[0]
+    iv_raw     = struct.unpack_from('<I', raw, 0x38)[0]
     iv_hp      = (iv_raw >> 0)  & 0x1F
     iv_atk     = (iv_raw >> 5)  & 0x1F
     iv_def     = (iv_raw >> 10) & 0x1F
@@ -1519,9 +1646,9 @@ def parse_pk5(raw: bytes) -> dict:
     # Growth rate corrected post-API fetch in scan_directory
     level = level_from_exp(exp, 'medium-fast')
 
-    # EVs at same offsets as Gen 4 (same block layout)
-    ev_hp  = raw[30]; ev_atk = raw[31]; ev_def = raw[32]
-    ev_spd = raw[33]; ev_spa = raw[34]; ev_spd2= raw[35]
+    # EVs at same offsets as Gen 4 (0x18-0x1D); 0x1E-0x23 are contest stats
+    ev_hp  = raw[24]; ev_atk = raw[25]; ev_def = raw[26]
+    ev_spd = raw[27]; ev_spa = raw[28]; ev_spd2= raw[29]
 
     # Origin game at byte 95 — same as Gen 4 (unverified for Gen 5, assumed same)
     GEN5_GAMES = {
@@ -1654,9 +1781,8 @@ def scan_directory(directory: str, recursive: bool = False):
             poke["moves_data"] = enrich_moves(poke.get("moves", []), cache)
 
             # Enrich held item — translate Gen2/3 IDs to PokéAPI slugs first
-            raw_item_id = poke.get("held_item_id", 0)
-            translated = translate_item_id(raw_item_id, poke.get("generation", 4))
-            poke["held_item"] = fetch_item_data(translated, cache) if translated else None
+            poke["held_item"] = resolve_held_item(poke.get("held_item_id", 0), poke.get("generation", 4),
+                                                  cache, poke.get("origin_game"))
 
             # Gender is already parsed from the file in each parser (Gen 3+)
             # Gen 1/2 derive from ATK DV vs species gender ratio (already in parser)
@@ -1672,10 +1798,7 @@ def scan_directory(directory: str, recursive: bool = False):
                     poke["gender"] = "female"
                 elif poke.get("generation", 0) <= 2:
                     # Gen 1/2: gender from ATK DV
-                    atk_dv = poke.get("ivs", {}).get("attack", 0)
-                    thresholds = {1: 0, 2: 3, 4: 7, 6: 11}
-                    threshold = thresholds.get(gender_rate, 7)
-                    poke["gender"] = "female" if atk_dv <= threshold else "male"
+                    poke["gender"] = gb_gender(poke.get("ivs", {}).get("attack", 0), gender_rate)
                 else:
                     # Gen 3: gender from PID
                     threshold = gender_rate * 32 - 1
@@ -1707,6 +1830,15 @@ def scan_directory(directory: str, recursive: bool = False):
 @app.route("/")
 def index():
     return render_template("index.html", build_version=load_build_version())
+
+@app.route("/api/check-update", methods=["POST"])
+def check_update():
+    """Run the manual update check the user asked for; nothing is stored."""
+    import update_check
+    try:
+        return jsonify(update_check.fetch_latest_release(load_build_version()))
+    except update_check.UpdateCheckError as error:
+        return jsonify({"status": "error", "headline": "Can't check for updates.", "detail": str(error)})
 
 @app.route("/cached-image/<filename>")
 def cached_image(filename):

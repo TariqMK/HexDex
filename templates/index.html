@@ -70,7 +70,26 @@ header{display:flex;align-items:center;gap:12px;height:56px;padding:0 24px;backg
 .brand{display:flex;align-items:center;gap:8px;margin-right:12px;flex-shrink:0}
 .brand-mark{width:20px;height:20px;color:var(--accent)}
 .logo{font-size:16px;font-weight:600}
-.build-version{font-family:var(--mono);font-size:12px;color:var(--text-3);white-space:nowrap;user-select:text}
+/* The version button sits last in the DOM (after Scan) for tab order, and is placed beside the logo with order. */
+header>*{order:2}
+header>.brand{order:0;margin-right:0}
+.build-version{order:1;margin:0 12px 0 -4px;height:24px;padding:0 6px;border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--text-3);white-space:nowrap;flex:none;
+  transition:background-color .15s var(--ease),color .15s var(--ease)}
+.build-version:hover:not(:disabled){background:var(--raised);color:var(--text-2)}
+.build-version:disabled{cursor:default}
+.build-version.has-update{color:var(--accent-ink)}
+
+/* ── Update dialog ──────────────────────────────────────────────── */
+.update-dialog{margin:auto;width:min(420px,calc(100vw - 32px));padding:20px;background:var(--card);color:var(--text);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow)}
+.update-dialog::backdrop{background:rgba(0,0,0,.45)}
+.update-dialog h2{font-size:12px;font-weight:500;color:var(--text-3);margin-bottom:12px}
+.update-headline{font-size:15px;font-weight:600;margin-bottom:4px}
+.update-detail{color:var(--text-2)}
+.update-notes{margin-top:12px;font-size:13px;color:var(--text-2)}
+.update-notes summary{cursor:pointer;color:var(--text)}
+.update-notes pre{margin-top:8px;max-height:200px;overflow:auto;white-space:pre-wrap;font-family:var(--ui);font-size:12px;line-height:18px;padding:8px 12px;background:var(--raised);border-radius:8px}
+.update-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.update-actions a{text-decoration:none}
 .scan-bar{flex:1;max-width:720px}
 .scan-bar input{font-family:var(--mono);font-size:13px}
 .header-gap{flex:1}
@@ -333,7 +352,6 @@ header{display:flex;align-items:center;gap:12px;height:56px;padding:0 24px;backg
   <div class="brand">
     <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 20.2 7.25v9.5L12 21.5 3.8 16.75v-9.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 8 15.46 10v4L12 16 8.54 14v-4Z" fill="currentColor"/></svg>
     <div class="logo">HexDex</div>
-    <div class="build-version" title="Current HexDex build" aria-label="Current HexDex build: {{ build_version }}">{{ build_version }}</div>
   </div>
   <label class="field scan-bar">
     <svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>
@@ -344,7 +362,20 @@ header{display:flex;align-items:center;gap:12px;height:56px;padding:0 24px;backg
   <label class="check"><input type="checkbox" id="scanRecursive"> Subfolders</label>
   <div class="header-gap"></div>
   <button class="btn btn-accent" id="btnScan" onclick="scanDirectory()">Scan</button>
+  <button class="build-version" id="btnVersion" type="button" onclick="checkForUpdates()" title="Check for updates"
+    aria-label="Version {{ build_version }}" aria-description="Check GitHub for a newer release.">{{ build_version }}</button>
 </header>
+
+<dialog class="update-dialog" id="updateDialog" aria-labelledby="updateTitle">
+  <h2 id="updateTitle">Check for updates</h2>
+  <p class="update-headline" id="updateHeadline"></p>
+  <p class="update-detail" id="updateDetail"></p>
+  <details class="update-notes" id="updateNotes" hidden><summary>Release notes</summary><pre id="updateNotesText"></pre></details>
+  <div class="update-actions">
+    <a class="btn btn-accent" id="updateOpen" target="_blank" rel="noopener" hidden>Open release page</a>
+    <button class="btn btn-ghost" type="button" id="updateClose" onclick="document.getElementById('updateDialog').close()">Close</button>
+  </div>
+</dialog>
 
 <!-- Bulk tag action bar -->
 <div class="bulk-bar" id="bulkBar" role="region" aria-label="Bulk tagging">
@@ -1597,7 +1628,42 @@ async function toggleFavFromPanel(){
 }
 
 // ── Keyboard ──────────────────────────────────────────────────────
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('updateDialog').open)closePanel()});
+
+// ── Update check (manual only: runs when the version is selected) ──
+async function checkForUpdates(){
+  const btn=document.getElementById('btnVersion');
+  if(btn.disabled)return;
+  const label=btn.textContent;
+  btn.disabled=true;btn.textContent='checking…';
+  let r;
+  try{
+    const res=await fetch('/api/check-update',{method:'POST',signal:AbortSignal.timeout(15000)});
+    r=await res.json();
+  }catch(err){
+    r={status:'error',headline:"Can't check for updates.",detail:"Can't reach GitHub: the check did not finish. Check the internet connection."};
+  }finally{
+    btn.textContent=label;btn.disabled=false;
+  }
+  if(r.status==='newer'){
+    btn.classList.add('has-update');
+    btn.title=`${r.latest} is available. Click for details.`;
+  }
+  document.getElementById('updateHeadline').textContent=r.headline||'';
+  document.getElementById('updateDetail').textContent=r.detail||'';
+  const notes=document.getElementById('updateNotes');
+  notes.hidden=!(r.url&&r.notes);notes.open=false;
+  document.getElementById('updateNotesText').textContent=r.notes||'';
+  const open=document.getElementById('updateOpen');
+  const showOpen=!!r.url&&r.url.startsWith('https://');
+  open.hidden=!showOpen;
+  if(showOpen)open.href=r.url;else open.removeAttribute('href');
+  open.className=`btn ${r.status==='newer'?'btn-accent':'btn-ghost'}`;
+  const dlg=document.getElementById('updateDialog');
+  dlg.showModal();
+  (r.status==='newer'?open:document.getElementById('updateClose')).focus();
+}
+document.getElementById('updateOpen').addEventListener('click',()=>document.getElementById('updateDialog').close());
 document.getElementById('dirInput').addEventListener('keydown',e=>{if(e.key==='Enter')scanDirectory()});
 
 // Initial labels for buttons whose contents are set from script
