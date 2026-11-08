@@ -6,6 +6,8 @@ Writes:
   assets/icons/hexdex_icon.icns  16-1024 px with @2x sizes (macOS app bundle)
   docs/images/banner.png         README banner, 1280 x 320 px drawn at 2x
   docs/images/social-card.png    GitHub social preview, 1280 x 640 px
+  docs/icon.svg                  Site favicon and logo (copy of the master)
+  docs/apple-touch-icon.png      Site home-screen icon, 180 x 180 px, opaque
 
 Run from the repository root with the project's virtual environment (needs PyQt6):
   python assets/make_assets.py
@@ -232,6 +234,16 @@ def main() -> int:
     IMAGES.mkdir(parents=True, exist_ok=True)
 
     render_icon(svg, 1024).save(str(ICON_DIR / "hexdex_icon.png"))
+
+    # GitHub Pages serves only docs/, so the site gets its own copies.
+    (ROOT / "docs" / "icon.svg").write_bytes(MASTER.read_bytes())
+    touch = QImage(180, 180, QImage.Format.Format_ARGB32)
+    touch.fill(QColor("#d42a42"))  # Opaque: iOS rounds the corners itself.
+    painter = QPainter(touch)
+    painter.drawImage(0, 0, render_icon(svg, 180))
+    painter.end()
+    touch.save(str(ROOT / "docs" / "apple-touch-icon.png"))
+    print("Wrote docs/icon.svg and docs/apple-touch-icon.png")
     write_ico(svg, ICON_DIR / "hexdex_icon.ico")
     write_icns(svg, ICON_DIR / "hexdex_icon.icns")
     write_banner(svg, IMAGES / "banner.png")
