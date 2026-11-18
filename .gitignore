@@ -9,3 +9,6 @@ start.bat
 CLAUDE.md
 AGENTS.md
 .cursor/
+
+# macOS folder metadata
+.DS_Store
