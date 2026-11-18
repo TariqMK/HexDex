@@ -13,22 +13,62 @@ from item_names import GEN2_ITEM_NAMES, GEN3_ITEM_NAMES, GEN4_ITEM_NAMES
 # ---------------------------------------------------------------------------
 # Path setup — works both when run normally and when frozen by PyInstaller
 # ---------------------------------------------------------------------------
+DATA_FOLDER_NAME = "HexDex-data"
+
+
+def app_folder(executable, frozen, source_dir, platform=sys.platform):
+    """Return the folder the user sees the app in, so data can live beside it.
+
+    From source: the project folder. Packaged: the executable's folder, except on
+    macOS, where the executable is inside HexDex.app/Contents/MacOS/ and the
+    folder that holds HexDex.app is returned instead.
+    """
+    if not frozen:
+        return source_dir
+    folder = os.path.dirname(os.path.abspath(executable))
+    if platform == "darwin":
+        probe = folder
+        while os.path.dirname(probe) != probe:
+            if probe.lower().endswith(".app"):
+                return os.path.dirname(probe)
+            probe = os.path.dirname(probe)
+    return folder
+
+
+def copy_legacy_data(legacy_dir, data_dir):
+    """Copy data from the old cache/ folder into the new data folder, once.
+
+    Runs only when the new folder does not exist yet. The old folder is left as it
+    is, so nothing of the user's is moved or deleted. Returns True if it copied.
+    """
+    if os.path.exists(data_dir) or not os.path.isdir(legacy_dir):
+        return False
+    import shutil
+    shutil.copytree(legacy_dir, data_dir)
+    return True
+
+
 if getattr(sys, 'frozen', False):
-    # Running as a PyInstaller exe — put cache next to the exe
-    BASE_DIR = os.path.dirname(sys.executable)
+    # Running as a PyInstaller build
     template_folder = os.path.join(sys._MEIPASS, 'templates')
     app = Flask(__name__, template_folder=template_folder)
+    LEGACY_CACHE_DIR = os.path.join(os.path.dirname(sys.executable), "cache")
 else:
     # Running normally via python app.py or python launch.py
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     app = Flask(__name__)
+    LEGACY_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
+
+BASE_DIR = app_folder(sys.executable, getattr(sys, 'frozen', False),
+                      os.path.dirname(os.path.abspath(__file__)))
 
 POKEAPI_BASE  = "https://pokeapi.co/api/v2"
-CACHE_DIR     = os.path.join(BASE_DIR, "cache")
+CACHE_DIR     = os.path.join(BASE_DIR, DATA_FOLDER_NAME)  # all user data, settings and downloads
 CACHE_FILE    = os.path.join(CACHE_DIR, "pokeapi_cache.json")
 IMAGE_DIR     = os.path.join(CACHE_DIR, "images")
 NOTES_FILE    = os.path.join(CACHE_DIR, "notes.json")
 
+if copy_legacy_data(LEGACY_CACHE_DIR, CACHE_DIR):
+    print(f"Copied data from {LEGACY_CACHE_DIR} to {CACHE_DIR}. The old folder was not changed.")
 os.makedirs(IMAGE_DIR, exist_ok=True)
 
 # Read-only progress polling runs alongside one scan; cache writes stay sequential.
@@ -115,7 +155,7 @@ def save_cache(cache):
         json.dump(cache, f)
 
 def cache_image(url: str, filename: str) -> str:
-    """Download image to cache/images/ if not already present.
+    """Download image to the data folder's images/ if not already present.
     Returns a local /cached-image/<filename> URL, or the original on failure."""
     if not url:
         return url

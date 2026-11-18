@@ -1,6 +1,7 @@
 Meta/
 __pycache__/
 cache/
+HexDex-data/
 venv/
 start.bat
 # AI tool files

@@ -1,8 +1,8 @@
 ![HexDex. Gen 1–7 Pokémon files. One collection.](docs/images/banner.png)
 
-A desktop viewer for your personal Pokémon collection. HexDex reads individual Pokémon files exported from PKHeX and displays them in a searchable collection with artwork, stats, moves, evolution chains, notes, tags, and favourites.
+HexDex is a desktop viewer for Pokémon files that you export from PKHeX. It shows your `.pk1` to `.pk7` files (Generations 1 to 7) as one searchable collection. Each Pokémon shows its artwork, stats, moves and evolution chain. You can add notes, tags and favourites.
 
-Supports `.pk1` through `.pk7` files, covering Generations 1–7. HexDex views exported files; it does not edit them or open complete game saves.
+HexDex only reads your files. It does not change them, and it does not open complete game saves. No accounts and no tracking. Your notes stay on your computer.
 
 Website: [tariqmk.github.io/HexDex](https://tariqmk.github.io/HexDex/)
 
@@ -11,193 +11,321 @@ Website: [tariqmk.github.io/HexDex](https://tariqmk.github.io/HexDex/)
   <img src="docs/images/collection-light.png" alt="HexDex collection view: the folder bar, search and filters, and a grid of Pokémon cards with artwork, level and favourite stars" width="840">
 </picture>
 
-## Screenshots
+## Features
 
-### Detail view
+- Search by species name or nickname.
+- Filter by type, generation, tags, **Favourites**, **Shiny**, **Legendary** and **Egg**.
+- Sort by Pokédex number, level, name, or shiny first.
+- See stats, IVs or DVs, EVs, nature, moves, held item, trainer details and the evolution chain.
+- See the six base stats as a hexagon in the Pokémon's type colour.
+- Group several files of one species and generation on one card, with a tab for each file.
+- Add notes and tags, and mark favourites. Tag many Pokémon at once with **Select**.
+- Scan one folder, or a folder and its subfolders.
+- Export the collection to a CSV file.
+- Open the Pokémon's page on Serebii for its generation.
+- Use cached data and artwork offline after the first scan.
+- Light and dark appearance follow your system setting.
+- Check for a newer release from the version label.
+
+## Screenshots
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/detail-dark.png">
   <img src="docs/images/detail-light.png" alt="HexDex detail panel for a shiny Charizard: artwork, types, the two Charizard files in the collection, description, and trainer details" width="840">
 </picture>
 
-## Features
+## Download
 
-- Search by species name or nickname, and filter by type, generation, tags, favourites, shinies, legendaries, or eggs.
-- Sort your collection by Pokédex number, level, name, or shiny status.
-- Inspect stats, IVs/DVs, EVs, moves, nature, trainer details, and evolution chains.
-- Switch between multiple Pokémon of the same species and generation using variant tabs.
-- Add notes and tags, mark favourites, and apply tags to multiple Pokémon at once.
-- Scan subfolders and export collection data to CSV.
-- Follow generation-specific links to Serebii for more information.
-- Reuse locally cached Pokémon data and artwork after the initial download.
-- Follow scan progress in a compact activity panel beneath the loading message.
-- Find the installed build version beside the HexDex logo, and select it to check for a newer release.
+Download HexDex from the [Releases page](https://github.com/TariqMK/HexDex/releases/latest). There are packages for Windows, macOS and Linux. Each package includes Python, so you do not have to install it.
 
-## Getting HexDex
-
-GitHub Actions builds downloadable packages for **Windows (x64), Linux (x64), and macOS (Apple Silicon only)**.
-
-Download the package for your operating system from [GitHub Releases](https://github.com/TariqMK/HexDex/releases/latest), then extract it. Only published releases are available publicly.
-
-| Platform | Package | Launch |
+| Platform | Package | Open |
 | --- | --- | --- |
-| Windows x64 | `HexDex-vX.Y.Z-windows-x64.zip` | Open `HexDex/HexDex.exe` |
-| Linux x64 | `HexDex-vX.Y.Z-linux-x64.tar.gz` | Run `./HexDex/HexDex` from the extracted directory |
-| macOS Apple Silicon | `HexDex-vX.Y.Z-macos-arm64.zip` | Open `HexDex.app` |
+| Windows x64 | `HexDex-vX.Y.Z-windows-x64.zip` | `HexDex/HexDex.exe` |
+| macOS Apple Silicon | `HexDex-vX.Y.Z-macos-arm64.zip` | `HexDex.app` |
+| Linux x64 | `HexDex-vX.Y.Z-linux-x64.tar.gz` | `./HexDex/HexDex` |
 
-`X.Y.Z` is the release version. Each release also includes `SHA256SUMS.txt` for checking download integrity.
+`X.Y.Z` is the release version.
 
-Extract the entire package. Windows and Linux builds need their accompanying `_internal` folder. Packaged builds include their Python runtime, so users do not need to install Python separately.
+1. Download the package for your computer.
+2. Optional: check the file against `SHA256SUMS.txt` from the same release.
+3. Extract the whole package.
+4. Open the file in the **Open** column.
 
-The macOS package is not signed with an Apple Developer certificate or notarised. macOS may require approval in **System Settings → Privacy & Security** before it can be opened. Intel Macs are not supported by this build.
+**Note:** On Windows and Linux, keep the `_internal` folder beside the executable. HexDex does not start without it.
 
-Linux builds target Ubuntu 22.04 or newer compatible distributions and require a graphical desktop plus the system libraries used by Qt. Other Linux distributions may need additional packages.
+**Note:** Do not put HexDex in `Program Files`. HexDex saves its data beside the executable, and that folder is not writable.
 
-## Using HexDex
+**Note:** The macOS package is not signed or notarised. The first time you open it, macOS blocks it. Go to **System Settings > Privacy & Security** and select **Open Anyway**. Intel Macs are not supported.
 
-1. Export individual Pokémon files from PKHeX into a folder.
-2. Open HexDex and choose that folder using **Browse**, or paste its path.
-3. Enable **Subfolders** if your collection spans multiple folders.
-4. Click **Scan**. The first scan downloads Pokémon information and artwork, so it requires an internet connection and may take a while.
-5. Use the search and filters to browse your collection, then click a card to see its details.
+**Note:** The Linux package is built on Ubuntu 22.04. It needs a graphical desktop and the system libraries for Qt. Other distributions can need more packages.
 
-Previously cached information and artwork can be used offline. Scanning Pokémon whose information has not been cached still requires an internet connection. Serebii links also require internet access.
+## Use HexDex
+
+1. In PKHeX, export the Pokémon you want into one folder.
+2. Open HexDex.
+3. Select **Browse** and choose the folder. You can also paste the folder path.
+4. If your files are in more than one folder, select **Subfolders**.
+5. Select **Scan**.
+   **Note:** The first scan downloads data and artwork for each species. It needs an internet connection and can take several minutes.
+6. Use the search box, filters and sort menu to find a Pokémon.
+7. Select a card to open the detail panel.
+8. Press **Esc** or select the close button to close the panel.
 
 ### Scan progress
 
-During a scan, a small panel appears beneath the loading message in the centre of the collection area. It updates about once a second with files processed, elapsed time, and the current download, including how long the request has been waiting.
+During a scan, a progress panel shows below the loading message. It updates about once a second and shows:
 
-**Scan activity** shows the four most recent events, including download failures. You can collapse it for a quieter display. The panel disappears when the collection loads and remains visible if the scan fails.
+- the number of files done,
+- the time since the scan started,
+- the download in progress, and how long it has waited.
 
-First scans can take longer because HexDex downloads species information, moves, abilities, evolution chains, and artwork sequentially. The file count advances when each file finishes processing, so it may pause while several downloads complete for one Pokémon. The **Scan** button is disabled during a scan to prevent overlapping scans.
+**Scan activity** shows the last four events, including failed downloads. Select it to collapse it.
 
-### Build version
+The file count goes up when a file is complete. One file can need several downloads, so the count can stop for some seconds. The **Scan** button is disabled until the scan is complete. The panel closes when the collection loads. If the scan fails, the panel stays open.
 
-The small label beside the **HexDex** logo shows the packaged release version, for example `v1.8.5`. Local Python runs show **Development build**. Draft and public packages carry the same version; publishing a draft does not change its contents.
+### Notes, tags and favourites
+
+Each file has its own notes, tags and favourite.
+
+1. Open the detail panel.
+2. Type a note, or add or remove a tag.
+3. Leave the note field. HexDex saves the change and shows **Saved**.
+4. To make a favourite, select the star.
+
+To tag many Pokémon at once:
+
+1. Select **Select**.
+2. Select the cards you want.
+3. Type a tag and select **Apply**.
+4. Select **Done**.
+
+**Caution:** HexDex links notes and tags to the file name. If two files in different subfolders have the same name, they share notes and tags. Give every file a unique name.
+
+### Export to CSV
+
+1. Select **Export CSV**.
+2. Choose a location and a file name.
+3. Select **Save**.
+
+The CSV file contains each Pokémon's details, stats, moves, notes, tags and favourite status.
 
 ### Check for updates
 
-1. Select the version label beside the **HexDex** logo.
+The label beside the **HexDex** logo shows the version, for example `v3.0.0`. If you run HexDex from source, it shows **Development build**.
+
+1. Select the version label.
 2. Read the result in the **Check for updates** dialog.
-3. If a newer release is available, select **Open release page** to download it in your browser.
+3. If a newer release is available, select **Open release page**. Your browser opens the release, where you can download it.
 
-HexDex does not download or install updates itself. It never checks automatically.
-
-### Notes, tags, and favourites
-
-Each exported file has its own notes, tags, and favourite status. Use the detail panel to edit notes and tags; they save automatically when you leave the note field or add or remove a tag, and a **Saved** label confirms it. To tag several Pokémon at once, click **Select**, choose their cards, and apply a tag.
-
-Keep filenames unique across scanned subfolders: personal annotations are currently associated with filenames, so files sharing the same name can share annotations.
-
-### CSV export
-
-Click **Export CSV** to export the loaded collection. Choose where to save the file using the Save As dialog. The export includes Pokémon details, stats, moves, notes, tags, and favourites.
+HexDex does not download or install updates. It never checks for updates automatically.
 
 ## Your data
 
-HexDex stores downloaded information, artwork, and personal annotations in a local `cache/` folder. In a packaged build, this folder is created beside the executable, so keep the application somewhere it can write files.
+HexDex keeps all its data in a `HexDex-data` folder beside the app. HexDex makes the folder when it starts for the first time.
 
-**Back up `cache/notes.json`.** It contains your notes, tags, and favourites and cannot be recreated by downloading Pokémon data. When replacing the application with a newer build, preserve your cache folder and personal annotations.
+- Windows and Linux: `HexDex-data` is in the same folder as `HexDex.exe` or `HexDex`.
+- macOS: `HexDex-data` is in the same folder as `HexDex.app`, not inside it.
 
-The cache, Python environment, and generated executables are excluded from the source repository.
+| File | Contents |
+| --- | --- |
+| `HexDex-data/notes.json` | Your notes, tags and favourites |
+| `HexDex-data/pokeapi_cache.json` | Downloaded Pokémon data |
+| `HexDex-data/images/` | Downloaded artwork |
+| `HexDex-data/last_dir.txt` | The last folder you scanned |
+
+To move HexDex to a different folder or computer, move the app and its `HexDex-data` folder together.
+
+**Caution:** Back up `HexDex-data/notes.json`. HexDex cannot download it again. All other files download again on the next scan.
+
+To move to a new version:
+
+1. Extract the new version.
+2. Copy the `HexDex-data` folder from the old version to the folder that contains the new app.
+
+### Data from older versions
+
+Versions before the `HexDex-data` folder kept data in a `cache` folder beside the executable. On macOS, that folder is inside the old `HexDex.app`, at `HexDex.app/Contents/MacOS/cache`.
+
+When HexDex starts and finds no `HexDex-data` folder, it copies the `cache` folder next to its executable into `HexDex-data`. It does not change or delete the old folder.
+
+To keep your notes from an older version:
+
+1. Copy the old `cache` folder to the folder that contains the new app.
+2. Rename it to `HexDex-data`.
+
+**Note:** On macOS, copy the `cache` folder out of the old `HexDex.app` before you delete the old app.
 
 ## Privacy
 
-HexDex has no accounts, telemetry, or analytics. Your notes, tags, and favourites stay in the local `cache/` folder. HexDex reads your Pokémon files and never changes them.
+- No accounts, telemetry, analytics or tracking.
+- Your notes, tags and favourites stay in the `HexDex-data` folder on your computer.
+- HexDex reads your Pokémon files. It never changes, moves or deletes them.
+- Cached data and artwork work offline. Only data that is not cached yet needs the internet.
 
 HexDex connects to the internet only for these features:
 
-- **Scan:** downloads Pokémon information from PokéAPI (pokeapi.co) and artwork from GitHub (raw.githubusercontent.com) that is not yet cached.
-- **Serebii links:** open serebii.net in your browser when you select them.
-- **Check for updates:** when you select the version number, the app asks GitHub (api.github.com) for the latest release. It sends nothing else and nothing is downloaded.
+- **Scan:** downloads Pokémon data that is not cached yet from PokéAPI (`pokeapi.co`), and artwork from GitHub (`raw.githubusercontent.com`).
+- **Serebii links:** open `serebii.net` in your browser, only when you select them.
+- **Check for updates:** sends one request to GitHub (`api.github.com`) for the latest release, only when you select the version label. It sends nothing else and downloads nothing.
 
-The HexDex website loads no third-party fonts, analytics, or trackers. It asks GitHub (api.github.com) for the latest release to show the version and download links.
+The HexDex website loads no third-party fonts, analytics or trackers. It asks GitHub (`api.github.com`) for the latest release to show the version and the download links.
 
-## Current limitations
+## Limitations
 
-- Supported inputs are PKHeX-exported `.pk1`–`.pk7` files; later generations and complete save files are not supported.
-- Held items are displayed for Generations 2–4 where a recognised mapping exists. Generation 5–7 held items are not currently displayed.
-- Folder browsing and CSV saving use dialogs on the computer running HexDex. The desktop application is the primary way to use these features.
+- HexDex reads only `.pk1` to `.pk7` files exported from PKHeX. It does not read Generation 8 or 9 files, or complete save files.
+- Held items show for Generations 2 to 4. Held items for Generations 5 to 7 do not show.
+- Types, abilities and base stats are the values from current games, not from the file's own game.
+- **Browse** and **Export CSV** open dialogs on the computer that runs HexDex.
 
-## Development and builds
+## Run from source
 
-The application uses Python, Flask, and pywebview with the Qt backend. The interface uses HTML, CSS, and JavaScript without a separate frontend build step.
+You need Python 3.10 or newer. The release builds use Python 3.12.
 
-### Update the brand images
+1. Clone the repository and open its folder.
+2. Make a virtual environment:
 
-The icon master is `assets/icons/hexdex_icon.svg`. To rebuild the icon formats, the banner and the social card after a change:
+   ```bash
+   python3 -m venv venv
+   ```
+
+3. Install the dependencies.
+
+   macOS and Linux:
+
+   ```bash
+   venv/bin/python -m pip install -r requirements.txt
+   ```
+
+   Windows:
+
+   ```bat
+   venv\Scripts\python.exe -m pip install -r requirements.txt
+   ```
+
+4. Start HexDex.
+
+   macOS and Linux:
+
+   ```bash
+   venv/bin/python launch.py
+   ```
+
+   Windows:
+
+   ```bat
+   venv\Scripts\python.exe launch.py
+   ```
+
+**Note:** Use the `python` in `venv`, not the `python` on your PATH. This prevents conflicts with other environments.
+
+**Note:** HexDex uses port 5000. On macOS, AirPlay Receiver can use port 5000. If HexDex does not start, turn off AirPlay Receiver in **System Settings > General > AirDrop & Handoff**.
+
+From source, the `HexDex-data` folder is in the project folder. Git ignores it.
+
+### Run the tests
+
+```bash
+venv/bin/python -m unittest discover -s tests
+```
+
+On Windows, use `venv\Scripts\python.exe` in place of `venv/bin/python`.
+
+The tests make their own sample files. To also test real exports, put `.pk1` to `.pk7` files in `Meta/test-pokemon/`. Git ignores that folder, so your files stay private.
+
+## Creating a release
+
+The workflow `.github/workflows/build.yml` runs only when you start it. Pushing commits or tags does not start a build.
+
+1. Commit and push the changes for the release.
+   **Note:** The workflow must be on the default branch. If it is not, the **Run workflow** button does not show.
+2. Open [Actions > Build and release HexDex](https://github.com/TariqMK/HexDex/actions/workflows/build.yml).
+3. Select **Run workflow**.
+4. Select the branch to build.
+5. Select the version increment:
+   - **patch** (default): fixes, for example `1.8.2` to `1.8.3`.
+   - **minor**: new features, for example `1.8.2` to `1.9.0`.
+   - **major**: changes that break compatibility, for example `1.8.2` to `2.0.0`.
+6. Select **draft** (default) to test first, or **public** to publish when the build is complete.
+7. Select **Run workflow**.
+8. For a draft: open it from the workflow summary or the Releases page, test the packages, edit the notes, then select **Publish release**.
+
+The workflow builds Windows x64, macOS Apple Silicon and Linux x64. All three builds must pass, or the workflow makes no release and no tag. A release contains the three packages, `SHA256SUMS.txt` and generated release notes.
+
+How the version is set:
+
+- The workflow finds the highest `vMAJOR.MINOR.PATCH` in the tags and releases, including drafts, and applies the increment.
+- A draft keeps its version number. The next build gets a new number.
+- With no tags, the workflow starts from `0.0.0`.
+- The workflow writes the version into `build-version.json` in the package. The source code always shows **Development build**.
+
+Other facts:
+
+- Only one release runs at a time, so two releases cannot get the same version.
+- The workflow never overwrites a published release.
+- If publishing fails, a draft can stay. Run the failed job again to continue.
+- Drafts are visible only to users with write access to the repository.
+- Actions keeps build artifacts for 30 days. Release files stay until you delete them.
+
+## Update the brand images
+
+The icon master is `assets/icons/hexdex_icon.svg`.
 
 1. Edit `assets/icons/hexdex_icon.svg`, or the name, tagline and colours at the top of `assets/make_assets.py`.
-2. Run `venv\Scripts\python.exe assets\make_assets.py`.
+2. Run `venv/bin/python assets/make_assets.py`.
 
-The script writes `hexdex_icon.png`, `.ico` and `.icns` to `assets/icons/`, `banner.png` and `social-card.png` to `docs/images/`, and `icon.svg` and `apple-touch-icon.png` to `docs/`. To use the social card on GitHub, open the repository, select **Settings**, then under **General** go to **Social preview**. Select **Edit** > **Upload an image** and choose `docs/images/social-card.png`.
+The script writes these files:
 
-### Update the screenshots
+- `assets/icons/`: `hexdex_icon.png`, `hexdex_icon.ico`, `hexdex_icon.icns`
+- `docs/images/`: `banner.png`, `social-card.png`
+- `docs/`: `icon.svg`, `apple-touch-icon.png`
 
-1. Run `venv\Scripts\python.exe assets\make_screenshots.py`.
+To use the social card on GitHub:
+
+1. Open the repository and select **Settings**.
+2. Under **General**, go to **Social preview**.
+3. Select **Edit** > **Upload an image**.
+4. Choose `docs/images/social-card.png`.
+
+## Update the screenshots
+
+1. Run `venv/bin/python assets/make_screenshots.py`.
 2. Check the four images in `docs/images/` before you commit them.
 
-The script opens the real interface with 25 made-up sample Pokémon and saves the collection and detail views in light and dark. It keeps its settings and data in `Meta/screenshot-cache/`, so your own collection, notes and folders do not appear.
+The script opens the real interface with 25 made-up Pokémon. It saves the collection view and the detail view, in light and dark. It keeps its data in `Meta/screenshot-cache/`, so your own collection, notes and folders do not show.
 
-**Note:** The first run downloads PokéAPI information and artwork for the sample species. Later runs work offline.
+**Note:** The first run downloads data and artwork for the sample species. Later runs work offline.
 
-### Update the website
+## Update the website
 
 The website is `docs/index.html`, `docs/style.css` and `docs/app.js`. It has no build step. GitHub Pages serves `docs/` from the `main` branch, so a push to `main` updates the website.
 
-To preview it locally:
+To preview it on your computer:
 
-1. Run `venv\Scripts\python.exe -m http.server 8765 --bind 127.0.0.1 --directory docs`.
+1. Run `venv/bin/python -m http.server 8765 --bind 127.0.0.1 --directory docs`.
 2. Open `http://127.0.0.1:8765/`.
 
 The app previews on the website are built in HTML with sample data and generic silhouettes. The website contains no Pokémon artwork. To change the sample data, edit `docs/app.js`.
 
-**Note:** The download links find release files by the end of their names, for example `windows-x64.zip`. If you rename release files, also change the `ASSET` patterns in `docs/app.js`. Until then, the links open the Releases page.
+**Note:** The download links find release files by the end of their names, for example `windows-x64.zip`. If you rename the release files, also change `ASSET` in `docs/app.js`. Until you do, the links open the Releases page.
 
-### Creating a release
-
-The workflow in `.github/workflows/build.yml` runs **manually only**. Pushing commits or tags does not trigger a build.
-
-To build a draft or publish a release:
-
-1. Commit and push the changes you want to release. The workflow must be present on the repository's default branch for the manual run button to appear.
-2. Open [Actions → Build and release HexDex](https://github.com/TariqMK/HexDex/actions/workflows/build.yml) and click **Run workflow**.
-3. Select the branch to build and choose the version increment:
-   - **Patch** (default): fixes, such as `1.8.2` → `1.8.3`.
-   - **Minor**: compatible new features, such as `1.8.2` → `1.9.0`.
-   - **Major**: breaking changes, such as `1.8.2` → `2.0.0`.
-4. Choose **draft** (default) to test before publishing, or **public** to publish automatically after a successful build.
-5. Run the workflow. After all three platform builds succeed, it creates a versioned GitHub Release with the packages, checksums, and automatically generated release notes.
-6. For a draft, open it from the workflow summary or Releases page, test the packages, then edit the notes and click **Publish release** when ready.
-
-The workflow calculates the next version from the highest existing stable `vMAJOR.MINOR.PATCH` version across repository tags and releases, including drafts. Drafts reserve their version so the next build receives a new number. With no matching tags, it starts from `0.0.0` before applying the chosen increment. Prerelease and unrelated tags are ignored. The increment is selected explicitly because the workflow cannot reliably infer whether changes are breaking.
-
-Release runs are serialized to avoid duplicate version numbers. The tag points to the exact commit selected for the run. Build failures do not create a release or tag; publication failures may leave a draft that can be resumed by rerunning the failed job. Published releases are never overwritten. Draft releases are visible to repository users with write access; source code and Actions logs remain public in a public repository. Published release downloads remain available independently of the temporary Actions artifacts, which are retained for 30 days.
-
-Runtime dependencies are listed in `requirements.txt`. The workflow installs PyInstaller and defines its packaging options directly, including the templates, Qt backend, and application icons (`.ico` for Windows, `.icns` for macOS, and the PNG window icon). It does not depend on the local spec in the ignored `Meta/` folder. Generated build output belongs in downloadable build packages rather than source commits.
-
-Actions embeds the calculated version in `build-version.json` and checks that it matches the release version before packaging. Both version calculation and release creation have the repository permission needed to see draft releases; platform build jobs retain read-only repository access.
-
-For local development checks, run `venv\Scripts\python.exe launch.py` on Windows (or use the local `start.bat`). This exercises the desktop interface, but packaged downloads still need testing on their target operating systems before publishing.
-
-Run the parser tests with `venv\Scripts\python.exe -m unittest discover -s tests`. The tests use generated sample files. To also check real exports, put `.pk1`–`.pk7` files in `Meta/test-pokemon/`. That folder is git-ignored, so the files stay private.
-
-### Repository layout
+## Repository layout
 
 ```text
 HexDex/
-├── app.py                  # Backend, Pokémon parsing, and local storage
 ├── launch.py               # Desktop window launcher
+├── app.py                  # Backend: file parsing, data downloads, local storage
+├── item_names.py           # Held item names for each generation
+├── update_check.py         # Check for updates
 ├── requirements.txt        # Runtime dependencies
-├── .github/
-│   └── workflows/
-│       └── build.yml       # Windows, Linux, and Apple Silicon builds
 ├── templates/
 │   └── index.html          # Application interface
+├── tests/                  # Parser, held item and update check tests
+├── .github/workflows/
+│   └── build.yml           # Windows, macOS and Linux builds and releases
 ├── assets/
 │   ├── icons/              # Icon master (SVG) and its PNG, ICO and ICNS files
-│   ├── make_assets.py      # Builds the icons, banner and social card
-│   └── make_screenshots.py # Retakes the README screenshots with sample data
+│   ├── make_assets.py      # Makes the icons, banner and social card
+│   └── make_screenshots.py # Makes the README screenshots with sample data
 └── docs/                   # GitHub Pages website
     ├── index.html, style.css, app.js
     ├── icon.svg, apple-touch-icon.png
@@ -206,6 +334,6 @@ HexDex/
 
 ## Credits
 
-Pokémon information and artwork are provided through [PokéAPI](https://pokeapi.co/). Additional information links point to [Serebii](https://www.serebii.net/). Pokémon files are exported using [PKHeX](https://github.com/kwsch/PKHeX).
+Pokémon data and artwork come from [PokéAPI](https://pokeapi.co/). The information links go to [Serebii](https://www.serebii.net/). You export Pokémon files with [PKHeX](https://github.com/kwsch/PKHeX).
 
-HexDex is an unofficial fan project and is not affiliated with Nintendo, Game Freak, or The Pokémon Company.
+HexDex is an unofficial fan project. It is not affiliated with Nintendo, Game Freak or The Pokémon Company.
