@@ -1,14 +1,24 @@
 """Tests for where HexDex keeps its data folder, and the one-time copy from the old cache folder."""
 import os
+import posixpath
 import sys
 import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import app  # noqa: E402
 
 
 class AppFolderTests(unittest.TestCase):
+    def setUp(self):
+        # These cases are macOS and Linux paths. Use POSIX path rules on every system,
+        # so Windows does not turn "/home/alex" into "C:\\home\\alex".
+        patcher = mock.patch.object(app.os, "path", posixpath)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_source_run_uses_project_folder(self):
         self.assertEqual(app.app_folder("/usr/bin/python3", False, "/src/HexDex", "darwin"), "/src/HexDex")
 
@@ -23,7 +33,7 @@ class AppFolderTests(unittest.TestCase):
         self.assertEqual(app.app_folder("/home/alex/HexDex/HexDex", True, "/unused", "linux"), "/home/alex/HexDex")
 
     def test_data_folder_name(self):
-        self.assertEqual(os.path.basename(app.CACHE_DIR), "HexDex-data")
+        self.assertEqual(Path(app.CACHE_DIR).name, "HexDex-data")
 
 
 class CopyLegacyDataTests(unittest.TestCase):
