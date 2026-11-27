@@ -199,6 +199,8 @@ jobs:
               '--hidden-import', 'tkinter',
               '--hidden-import', 'tkinter.filedialog',
               '--collect-data', 'webview',
+              # Lets the log file header name the pywebview version (importlib.metadata).
+              '--copy-metadata', 'pywebview',
           ]
           if sys.platform == 'win32':
               command += ['--icon', str(icon)]

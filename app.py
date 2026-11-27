@@ -4,11 +4,17 @@ import json
 import struct
 import time
 import threading
+import logging
 from collections import deque
 from urllib.parse import urlparse
 import requests
 from flask import Flask, jsonify, request, render_template
 from item_names import GEN2_ITEM_NAMES, GEN3_ITEM_NAMES, GEN4_ITEM_NAMES
+
+log = logging.getLogger("hexdex.app")
+scan_log = logging.getLogger("hexdex.scan")
+net_log = logging.getLogger("hexdex.network")
+file_log = logging.getLogger("hexdex.files")
 
 # ---------------------------------------------------------------------------
 # Path setup — works both when run normally and when frozen by PyInstaller
@@ -67,8 +73,8 @@ CACHE_FILE    = os.path.join(CACHE_DIR, "pokeapi_cache.json")
 IMAGE_DIR     = os.path.join(CACHE_DIR, "images")
 NOTES_FILE    = os.path.join(CACHE_DIR, "notes.json")
 
-if copy_legacy_data(LEGACY_CACHE_DIR, CACHE_DIR):
-    print(f"Copied data from {LEGACY_CACHE_DIR} to {CACHE_DIR}. The old folder was not changed.")
+# Logging starts after this (in launch.py), so it reads LEGACY_COPIED and reports the copy then.
+LEGACY_COPIED = copy_legacy_data(LEGACY_CACHE_DIR, CACHE_DIR)
 os.makedirs(IMAGE_DIR, exist_ok=True)
 
 # Read-only progress polling runs alongside one scan; cache writes stay sequential.
@@ -94,15 +100,23 @@ def fetch_with_progress(url, **kwargs):
     """Report the existing bounded request without changing scan ordering."""
     path = urlparse(url).path
     label = path.split('/api/v2/')[-1].strip('/') if '/api/v2/' in path else f'artwork {os.path.basename(path)}'
+    host = urlparse(url).netloc
     started = time.monotonic()
     scan_progress(f'Fetching {label}', request_started=started)
     try:
         response = requests.get(url, **kwargs)
         response.raise_for_status()
     except requests.RequestException as error:
+        status = getattr(getattr(error, 'response', None), 'status_code', None)
+        net_log.warning('GET %s %s failed after %.1f s: %s', host, path,
+                        time.monotonic() - started, status or type(error).__name__)
         scan_progress(f'{label}: {type(error).__name__}; continuing without this download', request_started=None)
         raise
-    scan_progress(f'Received {label} ({time.monotonic() - started:.1f}s)', request_started=None)
+    elapsed = time.monotonic() - started
+    net_log.info('GET %s %s %s in %.1f s', host, path, response.status_code, elapsed)
+    if elapsed > 5:
+        net_log.warning('Slow request: %s %s took %.1f s', host, path, elapsed)
+    scan_progress(f'Received {label} ({elapsed:.1f}s)', request_started=None)
     return response
 
 
@@ -130,7 +144,7 @@ def load_notes():
             with open(NOTES_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, ValueError) as e:
-            print(f"Warning: notes.json is corrupted ({e}). Starting with empty notes.")
+            file_log.warning("notes.json can't be read (%s). Starting with empty notes.", e)
             return {}
     return {}
 
@@ -167,7 +181,7 @@ def cache_image(url: str, filename: str) -> str:
             with open(local_path, "wb") as f:
                 f.write(r.content)
         except Exception as e:
-            print(f"Image cache failed for {url}: {e}")
+            file_log.warning("Artwork not saved for %s: %s", filename, e)
             return url
     return f"/cached-image/{filename}"
 
@@ -240,7 +254,7 @@ def fetch_pokemon_data(species_id, cache):
         return data
 
     except Exception as e:
-        print(f"PokéAPI error for species {species_id}: {e}")
+        net_log.warning("PokéAPI data for species %s not loaded: %s", species_id, e)
         return None
 
 def fetch_move_data(move_id: int, cache: dict) -> dict | None:
@@ -297,7 +311,7 @@ def fetch_move_data(move_id: int, cache: dict) -> dict | None:
         return data
 
     except Exception as e:
-        print(f"PokéAPI move error for id {move_id}: {e}")
+        net_log.warning("PokéAPI data for move %s not loaded: %s", move_id, e)
         return None
 
 def fetch_ability_data(ability_name: str, cache: dict) -> dict | None:
@@ -330,7 +344,7 @@ def fetch_ability_data(ability_name: str, cache: dict) -> dict | None:
         time.sleep(0.15)
         return data
     except Exception as e:
-        print(f"PokéAPI ability error for {ability_name}: {e}")
+        net_log.warning("PokéAPI data for ability %s not loaded: %s", ability_name, e)
         return None
 
 
@@ -803,7 +817,7 @@ def fetch_item_data(item_id, cache: dict) -> dict | None:
         time.sleep(0.15)
         return data
     except Exception as e:
-        print(f"PokéAPI item error for id {item_id}: {e}")
+        net_log.warning("PokéAPI data for item %s not loaded: %s", item_id, e)
         return None
 
 
@@ -861,7 +875,7 @@ def fetch_evo_chain(species_id: int, cache: dict) -> list:
         return chain
 
     except Exception as e:
-        print(f"Evo chain error for {species_id}: {e}")
+        net_log.warning("Evolution chain for species %s not loaded: %s", species_id, e)
         return []
 
 # ---------------------------------------------------------------------------
@@ -1787,6 +1801,7 @@ def scan_directory(directory: str, recursive: bool = False):
                 continue
 
             if poke is None:
+                scan_log.warning("Skipped %s: not a valid %s file (%d bytes)", fpath, ext, len(raw))
                 errors.append({"file": fname, "reason": "Parse returned null (invalid or empty slot)"})
                 continue
 
@@ -1856,6 +1871,7 @@ def scan_directory(directory: str, recursive: bool = False):
             results.append(poke)
 
         except Exception as e:
+            scan_log.warning("Could not load %s", fpath, exc_info=True)
             errors.append({"file": fname, "reason": str(e)})
             scan_progress(f'Could not load {fname}: {type(e).__name__}')
         finally:
@@ -1867,18 +1883,48 @@ def scan_directory(directory: str, recursive: bool = False):
 # Flask routes
 # ---------------------------------------------------------------------------
 
+def report_problem_url(version, os_name):
+    """GitHub bug form with only the version and OS filled in. Nothing else goes in the URL."""
+    from urllib.parse import urlencode
+    import update_check
+    version = version[1:] if version.startswith("v") else version
+    query = urlencode({"template": "bug.yml", "version": version, "os": os_name})
+    return f"https://github.com/{update_check.OWNER}/{update_check.REPO}/issues/new?{query}"
+
+
 @app.route("/")
 def index():
-    return render_template("index.html", build_version=load_build_version())
+    import app_log
+    version = load_build_version()
+    return render_template("index.html", build_version=version,
+                           report_url=report_problem_url(version, app_log.os_description()),
+                           file_manager=app_log.file_manager_name())
 
 @app.route("/api/check-update", methods=["POST"])
 def check_update():
     """Run the manual update check the user asked for; nothing is stored."""
     import update_check
+    log.info("Update check started")
     try:
-        return jsonify(update_check.fetch_latest_release(load_build_version()))
+        result = update_check.fetch_latest_release(load_build_version())
     except update_check.UpdateCheckError as error:
+        log.warning("Update check failed: %s", error)
         return jsonify({"status": "error", "headline": "Can't check for updates.", "detail": str(error)})
+    log.info("Update check result: %s (latest %s)", result.get("status"), result.get("latest"))
+    return jsonify(result)
+
+@app.route("/api/view-logs", methods=["POST"])
+def view_logs():
+    """Show the log file in the file manager, or return its path for the fallback dialog."""
+    import app_log
+    log.info("View Logs selected")
+    return jsonify(app_log.view_logs())
+
+@app.route("/api/report-problem", methods=["POST"])
+def report_problem():
+    """Log that the user opened the bug form; the browser opens the link itself."""
+    log.info("Report a Problem selected")
+    return jsonify({"ok": True})
 
 @app.route("/cached-image/<filename>")
 def cached_image(filename):
@@ -1899,9 +1945,12 @@ def browse_directory():
         if chosen:
             # tkinter on Windows sometimes wraps paths with spaces in {curly braces}
             chosen = chosen.strip('{}')
+            log.info("Browse: folder chosen: %s", chosen)
             return jsonify({"dir": chosen})
+        log.info("Browse: cancelled")
         return jsonify({"dir": None})
     except Exception as e:
+        log.error("Browse: folder dialog failed", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/open-folder", methods=["POST"])
@@ -1921,8 +1970,10 @@ def open_folder():
             subprocess.Popen(["open", directory])
         else:
             subprocess.Popen(["xdg-open", directory])
+        log.info("Open folder: %s", directory)
         return jsonify({"ok": True})
     except Exception as e:
+        log.error("Open folder failed for %s", directory, exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 LAST_DIR_FILE = os.path.join(CACHE_DIR, "last_dir.txt")
@@ -1944,6 +1995,7 @@ def set_last_dir():
         os.makedirs(CACHE_DIR, exist_ok=True)
         with open(LAST_DIR_FILE, "w", encoding="utf-8") as f:
             f.write(d)
+        log.info("Last-used folder set: %s", d)
     return jsonify({"ok": True})
 
 @app.route("/api/scan", methods=["POST"])
@@ -1955,6 +2007,7 @@ def api_scan():
         return jsonify({"error": "No directory provided"}), 400
     directory = directory.replace("/", os.sep)
     if not os.path.isdir(directory):
+        scan_log.warning("Scan: folder not found: %s", directory)
         return jsonify({"error": f"Directory not found: {directory}"}), 404
 
     if not SCAN_LOCK.acquire(blocking=False):
@@ -1964,13 +2017,18 @@ def api_scan():
         SCAN_LOG.clear()
         SCAN_PROGRESS.update(scan_id=body.get("scan_id"), running=True, completed=0,
                              total=0, started=time.monotonic(), finished=None, request_started=None)
+    started = time.monotonic()
+    scan_log.info("Scan started: %s (subfolders %s)", directory, "on" if recursive else "off")
     try:
         scan_progress('Finding Pokémon files…')
         pokemon, errors = scan_directory(directory, recursive)
         scan_progress(f'Finished: {len(pokemon)} loaded, {len(errors)} file errors')
+        scan_log.info("Scan finished: %d loaded, %d file errors in %.1f s",
+                      len(pokemon), len(errors), time.monotonic() - started)
         return jsonify({"pokemon": pokemon, "errors": errors, "count": len(pokemon)})
     except Exception as error:
         scan_progress(f'Scan failed: {type(error).__name__}')
+        scan_log.error("Scan failed after %.1f s", time.monotonic() - started, exc_info=True)
         raise
     finally:
         scan_progress(running=False, finished=time.monotonic(), request_started=None)
@@ -2021,7 +2079,15 @@ def save_note():
         "tags":      body.get("tags", []),
         "favourite": body.get("favourite", False),
     }
-    save_notes(notes)
+    try:
+        save_notes(notes)
+    except OSError:
+        file_log.error("Could not save notes for %s", filename, exc_info=True)
+        raise
+    # The note text and tag names are what the user typed, so only their sizes are logged.
+    file_log.info("Notes saved for %s (note %d chars, %d tags, favourite %s)", filename,
+                  len(notes[filename]["note"] or ""), len(notes[filename]["tags"] or []),
+                  bool(notes[filename]["favourite"]))
     return jsonify({"ok": True})
 
 @app.route("/api/notes/<filename>")
@@ -2055,10 +2121,13 @@ def export_csv():
         )
         root.destroy()
     except Exception as e:
+        log.error("Export CSV: save dialog failed", exc_info=True)
         return jsonify({"error": f"Save dialog failed: {e}"}), 500
 
     if not out_path:
+        log.info("Export CSV: cancelled")
         return jsonify({"cancelled": True})
+    log.info("Export CSV: writing %d Pokémon to %s", len(pokemon), out_path)
 
     notes = load_notes()
     with open(out_path, "w", newline="", encoding="utf-8") as f:
@@ -2100,6 +2169,7 @@ def export_csv():
                 nd.get("note",""), "|".join(nd.get("tags",[])), nd.get("favourite", False)
             ])
 
+    file_log.info("Export CSV: finished %s", out_path)
     return jsonify({"ok": True, "path": out_path})
 
 if __name__ == "__main__":

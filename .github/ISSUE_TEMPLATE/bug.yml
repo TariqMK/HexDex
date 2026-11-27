@@ -1,0 +1,37 @@
+name: Bug report
+description: Something isn't working right
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we make it happen again?
+      placeholder: |
+        1. Selected Browse and picked a folder of 40 .pk4 files
+        2. Selected Scan
+        3. Opened a Pokémon: its held item shows the wrong name
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: HexDex version
+      description: Shown beside the HexDex name at the top left of the window
+      placeholder: e.g. 3.1.0
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: e.g. Windows 11, macOS 26.1, Ubuntu 24.04
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots or a screen recording help a lot. The log file helps too (Help > View Logs, the ? beside the version). A .pk file that shows the problem helps most. You can drag them in here.

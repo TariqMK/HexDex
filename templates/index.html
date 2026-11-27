@@ -78,6 +78,19 @@ header>.brand{order:0;margin-right:0}
 .build-version:hover:not(:disabled){background:var(--raised);color:var(--text-2)}
 .build-version:disabled{cursor:default}
 .build-version.has-update{color:var(--accent-ink)}
+/* Help menu: View Logs and Report a Problem, beside the version (HexDex has no menu bar or Settings). */
+.help-wrap{order:1;position:relative;margin:0 12px 0 -12px;flex:none}
+.help-btn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;color:var(--text-3);
+  transition:background-color .15s var(--ease),color .15s var(--ease)}
+.help-btn:hover,.help-btn[aria-expanded="true"]{background:var(--raised);color:var(--text-2)}
+.help-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:200px;padding:4px;background:var(--card);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);z-index:400}
+.help-menu.open{display:block;animation:pop .16s var(--ease)}
+.help-item{display:flex;align-items:center;gap:8px;width:100%;height:32px;padding:0 12px;border-radius:6px;font-size:13px;color:var(--text-2);text-decoration:none;white-space:nowrap;text-align:left;
+  transition:background-color .1s var(--ease),color .1s var(--ease)}
+.help-item .icon{color:var(--text-3)}
+.help-item:hover,.help-item:focus-visible{background:var(--raised);color:var(--text);outline:0}
+.help-note{padding:4px 12px 6px;font-size:11px;line-height:16px;color:var(--text-3);white-space:normal;max-width:240px}
+.log-path{display:block;width:100%;margin-top:12px;padding:8px 12px;font-family:var(--mono);font-size:12px;color:var(--text);background:var(--raised);border:1px solid var(--line);border-radius:8px;overflow-wrap:anywhere;user-select:all}
 
 /* ── Update dialog ──────────────────────────────────────────────── */
 .update-dialog{margin:auto;width:min(420px,calc(100vw - 32px));padding:20px;background:var(--card);color:var(--text);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow)}
@@ -343,6 +356,9 @@ header>.brand{order:0;margin-right:0}
   <symbol id="i-select" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 13H8"/><path d="M16 17H8"/><path d="M16 13h-2"/></symbol>
+  <symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol>
   <symbol id="i-folder-search" viewBox="0 0 24 24"><path d="M10.7 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v4.1"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.9-1.9"/></symbol>
 </svg>
 
@@ -364,7 +380,30 @@ header>.brand{order:0;margin-right:0}
   <button class="btn btn-accent" id="btnScan" onclick="scanDirectory()">Scan</button>
   <button class="build-version" id="btnVersion" type="button" onclick="checkForUpdates()" title="Check for updates"
     aria-label="Version {{ build_version }}" aria-description="Check GitHub for a newer release.">{{ build_version }}</button>
+  <div class="help-wrap" id="helpWrap">
+    <button class="help-btn" id="btnHelp" type="button" title="Help" aria-label="Help" aria-haspopup="menu" aria-expanded="false"
+      aria-controls="helpMenu" onclick="toggleHelpMenu()"><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg></button>
+    <div class="help-menu" id="helpMenu" role="menu" aria-label="Help">
+      <button class="help-item" type="button" role="menuitem" onclick="viewLogs()" title="Show the log file in {{ file_manager }}">
+        <svg class="icon" aria-hidden="true"><use href="#i-file-text"/></svg>View Logs</button>
+      <a class="help-item" role="menuitem" href="{{ report_url }}" target="_blank" rel="noopener" onclick="reportProblem()"
+        title="Open a bug report on GitHub in your browser">
+        <svg class="icon" aria-hidden="true"><use href="#i-bug"/></svg>Report a Problem…</a>
+      <p class="help-note">Opens a bug report on GitHub in your browser, with your version filled in. Needs a free GitHub account.</p>
+    </div>
+  </div>
 </header>
+
+<dialog class="update-dialog" id="logsDialog" aria-labelledby="logsTitle">
+  <h2 id="logsTitle">View Logs</h2>
+  <p class="update-headline" id="logsHeadline">Can't open the file manager.</p>
+  <p class="update-detail" id="logsDetail"></p>
+  <code class="log-path" id="logsPath"></code>
+  <div class="update-actions">
+    <button class="btn btn-ghost" type="button" id="logsCopy" onclick="copyLogPath()">Copy Path</button>
+    <button class="btn btn-ghost" type="button" id="logsClose" onclick="document.getElementById('logsDialog').close()">Close</button>
+  </div>
+</dialog>
 
 <dialog class="update-dialog" id="updateDialog" aria-labelledby="updateTitle">
   <h2 id="updateTitle">Check for updates</h2>
@@ -1628,7 +1667,66 @@ async function toggleFavFromPanel(){
 }
 
 // ── Keyboard ──────────────────────────────────────────────────────
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('updateDialog').open)closePanel()});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if(document.getElementById('helpMenu').classList.contains('open')){closeHelpMenu(true);return}
+  if(!document.getElementById('updateDialog').open&&!document.getElementById('logsDialog').open)closePanel();
+});
+
+// ── Help menu: View Logs and Report a Problem ─────────────────────
+function toggleHelpMenu(){
+  const menu=document.getElementById('helpMenu');
+  if(menu.classList.contains('open')){closeHelpMenu(true);return}
+  menu.classList.add('open');
+  document.getElementById('btnHelp').setAttribute('aria-expanded','true');
+  menu.querySelector('.help-item').focus();
+}
+function closeHelpMenu(focusButton){
+  document.getElementById('helpMenu').classList.remove('open');
+  const btn=document.getElementById('btnHelp');
+  btn.setAttribute('aria-expanded','false');
+  if(focusButton)btn.focus();
+}
+document.addEventListener('click',e=>{if(!e.target.closest('#helpWrap'))closeHelpMenu(false)});
+document.getElementById('helpMenu').addEventListener('keydown',e=>{
+  if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+  e.preventDefault();
+  const items=[...document.querySelectorAll('#helpMenu .help-item')];
+  const i=items.indexOf(document.activeElement);
+  items[(i+(e.key==='ArrowDown'?1:items.length-1))%items.length].focus();
+});
+async function viewLogs(){
+  closeHelpMenu(false);
+  let r;
+  try{
+    const res=await fetch('/api/view-logs',{method:'POST',signal:AbortSignal.timeout(10000)});
+    r=await res.json();
+  }catch(err){
+    r={ok:false,path:'',error:'HexDex did not answer. Try again.'};
+  }
+  if(r.ok)return;
+  document.getElementById('logsDetail').textContent=(r.error||'')+(r.path?' The log file is here:':'');
+  const path=document.getElementById('logsPath');
+  path.textContent=r.path||'';path.hidden=!r.path;
+  const copy=document.getElementById('logsCopy');
+  copy.hidden=!r.path;copy.textContent='Copy Path';
+  document.getElementById('logsDialog').showModal();
+  (r.path?copy:document.getElementById('logsClose')).focus();
+}
+async function copyLogPath(){
+  const text=document.getElementById('logsPath').textContent;
+  const copy=document.getElementById('logsCopy');
+  try{await navigator.clipboard.writeText(text)}
+  catch(err){
+    const range=document.createRange();range.selectNodeContents(document.getElementById('logsPath'));
+    const sel=getSelection();sel.removeAllRanges();sel.addRange(range);document.execCommand('copy');
+  }
+  copy.textContent='Copied';
+}
+function reportProblem(){
+  closeHelpMenu(false);
+  fetch('/api/report-problem',{method:'POST'}).catch(()=>{});
+}
 
 // ── Update check (manual only: runs when the version is selected) ──
 async function checkForUpdates(){

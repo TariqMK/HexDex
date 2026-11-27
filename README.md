@@ -119,6 +119,30 @@ The label beside the **HexDex** logo shows the version, for example `v3.0.0`. If
 
 HexDex does not download or install updates. It never checks for updates automatically.
 
+### Report a problem
+
+The **?** button beside the version label opens the **Help** menu.
+
+1. Select **?** > **Report a Problem…**. Your browser opens a bug report on GitHub. Your HexDex version and operating system are already filled in.
+2. Describe what happened and how to make it happen again.
+3. Optional: attach screenshots and the log file (see **View the log file**).
+4. Select **Submit new issue**.
+
+You can also [report a bug](https://github.com/TariqMK/HexDex/issues/new?template=bug.yml) or [suggest an idea](https://github.com/TariqMK/HexDex/issues/new?template=idea.yml) on GitHub.
+
+> [!NOTE]
+> You need a free GitHub account to send a report. Nothing is sent until you select **Submit new issue** on GitHub.
+
+### View the log file
+
+HexDex records what it does and any errors in `HexDex-data/HexDex.log`. The log helps find the cause of a problem.
+
+1. Select **?** > **View Logs**.
+2. The file manager opens at the log file: Finder on macOS, File Explorer on Windows, the `HexDex-data` folder on Linux.
+3. Attach `HexDex.log` to your bug report.
+
+If the file manager does not open, HexDex shows the path to the log file. Select **Copy Path** to copy it.
+
 ## Your data
 
 HexDex keeps all its data in a `HexDex-data` folder beside the app. HexDex makes the folder when it starts for the first time.
@@ -132,6 +156,7 @@ HexDex keeps all its data in a `HexDex-data` folder beside the app. HexDex makes
 | `HexDex-data/pokeapi_cache.json` | Downloaded Pokémon data |
 | `HexDex-data/images/` | Downloaded artwork |
 | `HexDex-data/last_dir.txt` | The last folder you scanned |
+| `HexDex-data/HexDex.log` | A record of what HexDex did and any errors. It keeps about the newest 1 MB |
 
 To move HexDex to a different folder or computer, move the app and its `HexDex-data` folder together.
 
@@ -161,12 +186,14 @@ To keep your notes from an older version:
 - Your notes, tags and favourites stay in the `HexDex-data` folder on your computer.
 - HexDex reads your Pokémon files. It never changes, moves or deletes them.
 - Cached data and artwork work offline. Only data that is not cached yet needs the internet.
+- HexDex keeps a log file, `HexDex.log`, in the `HexDex-data` folder. It records what the app does and any errors, including file and folder names, to help fix problems. It never records your notes or tags. Your home folder shows as `~`. It never leaves your computer unless you send it. To find it, select **?** > **View Logs**.
 
 HexDex connects to the internet only for these features:
 
 - **Scan:** downloads Pokémon data that is not cached yet from PokéAPI (`pokeapi.co`), and artwork from GitHub (`raw.githubusercontent.com`).
 - **Serebii links:** open `serebii.net` in your browser, only when you select them.
 - **Check for updates:** sends one request to GitHub (`api.github.com`) for the latest release, only when you select the version label. It sends nothing else and downloads nothing.
+- **Report a Problem:** opens a page on GitHub in your browser. Nothing is sent until you submit it there.
 
 The HexDex website loads no third-party fonts, analytics or trackers. It asks GitHub (`api.github.com`) for the latest release to show the version and the download links.
 
@@ -231,6 +258,24 @@ venv/bin/python -m unittest discover -s tests
 On Windows, use `venv\Scripts\python.exe` in place of `venv/bin/python`.
 
 The tests make their own sample files. To also test real exports, put `.pk1` to `.pk7` files in `Meta/test-pokemon/`. Git ignores that folder, so your files stay private.
+
+### Run the end-to-end check
+
+`scripts/check_e2e.py` drives a running HexDex through its local API. It scans a made-up sample file in a new, empty folder, and checks the results, notes, the log file and that the sample file did not change. It uses only the Python standard library.
+
+> [!CAUTION]
+> The check saves a note for its sample file. Run it against a test copy of HexDex with its own `HexDex-data` folder, not your own collection.
+
+1. Start a test copy of HexDex. The first scan needs the internet.
+2. Run the check:
+
+   ```bash
+   python3 scripts/check_e2e.py --url http://127.0.0.1:5000 --version 3.0.1 --data <test copy>/HexDex-data
+   ```
+
+3. Read the result line. `RESULT: PASS` means every check passed.
+
+Leave out `--version` for a development build.
 
 ## Creating a release
 
@@ -314,14 +359,18 @@ The app previews on the website are built in HTML with sample data and generic s
 HexDex/
 ├── launch.py               # Desktop window launcher
 ├── app.py                  # Backend: file parsing, data downloads, local storage
+├── app_log.py              # Log file (HexDex.log) and View Logs
 ├── item_names.py           # Held item names for each generation
 ├── update_check.py         # Check for updates
 ├── requirements.txt        # Runtime dependencies
 ├── templates/
 │   └── index.html          # Application interface
-├── tests/                  # Parser, held item and update check tests
-├── .github/workflows/
-│   └── build.yml           # Windows, macOS and Linux builds and releases
+├── tests/                  # Parser, held item, update check and log file tests
+├── scripts/
+│   └── check_e2e.py        # End-to-end check of a running HexDex
+├── .github/
+│   ├── workflows/build.yml # Windows, macOS and Linux builds and releases
+│   └── ISSUE_TEMPLATE/     # Bug report and feature idea forms
 ├── assets/
 │   ├── icons/              # Icon master (SVG) and its PNG, ICO and ICNS files
 │   ├── make_assets.py      # Makes the icons, banner and social card

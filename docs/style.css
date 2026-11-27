@@ -190,6 +190,9 @@ h1{font-size:64px;line-height:1.05;font-weight:600;letter-spacing:-.025em}
 .dl-go{display:inline-flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;font-weight:500}
 .dl.mine .dl-go{color:var(--accent-ink)}
 .fine{margin-top:24px;font-size:14px;color:var(--text-3)}
+/* Feedback */
+.feedback{padding-top:96px;padding-bottom:96px;border-top:1px solid var(--line)}
+.feedback-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
 .fine a{color:var(--text-2);text-decoration:underline;text-underline-offset:3px}
 
 /* Footer */
@@ -241,6 +244,7 @@ h1{font-size:64px;line-height:1.05;font-weight:600;letter-spacing:-.025em}
   .cards{grid-template-columns:minmax(0,1fr)}
   .download,.features{padding-bottom:64px}
   .download{padding-top:64px}
+  .feedback{padding-top:64px;padding-bottom:64px}
   .footer-row{flex-direction:column;align-items:flex-start;gap:16px}
 }
 @media (prefers-reduced-motion:reduce){
